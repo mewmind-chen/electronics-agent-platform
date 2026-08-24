@@ -104,6 +104,14 @@ test("import request and result", () => {
     text: "老陈那边 TI 54560 还有一批",
   });
   assert.equal(req.ok, true);
+  assert.equal(req.value.mode, "auto");
+  const agentReq = parseImportRequest({
+    kind: "offer",
+    sourceType: "text",
+    text: "x",
+    viaAgent: true,
+  });
+  assert.equal(agentReq.value.mode, "agent");
 
   const result = parseImportResult({
     usedAi: true,

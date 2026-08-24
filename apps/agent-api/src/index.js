@@ -45,6 +45,14 @@ const server = createServer(async (req, res) => {
       phase: 7,
       contractVersion: CONTRACT_VERSION,
       routes: listTaskRoutes(),
+      agent: {
+        available: runtime.isAgentAvailable(),
+        modeDefault: "auto",
+        policy: {
+          provider: runtime.modelPolicy.provider,
+          model: runtime.modelPolicy.model,
+        },
+      },
     });
     return;
   }
@@ -74,6 +82,8 @@ const server = createServer(async (req, res) => {
         needsAgent: Boolean(result.needsAgent),
         viaHarness: Boolean(result.viaHarness),
         route: result.route,
+        mode: result.mode,
+        error: result.error,
         toolsCalled: result.toolsCalled || [],
         reason: result.reason,
         preview: result.preview,

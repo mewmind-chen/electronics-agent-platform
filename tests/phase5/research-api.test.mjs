@@ -22,7 +22,7 @@ test("parts and companies research routes return contracts, not SQL", async () =
   const port = 18790;
   const child = spawn(process.execPath, [join(root, "apps/agent-api/src/index.js")], {
     cwd: root,
-    env: { ...process.env, AGENT_API_PORT: String(port), ELECTRONICS_HARNESS_STUB: "1", DEEPSEEK_API_KEY: "" },
+    env: { ...process.env, AGENT_API_PORT: String(port), ELECTRONICS_HARNESS_STUB: "", DEEPSEEK_API_KEY: "" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   try {

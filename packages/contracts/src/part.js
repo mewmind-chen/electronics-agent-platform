@@ -17,6 +17,7 @@ import {
   fail,
   isPlainObject,
   ok,
+  parseExecutionMode,
   rejectWriteSemantics,
 } from "./common.js";
 import { evidenceIdsExist, parseEvidenceItem, parseVerdict } from "./evidence.js";
@@ -44,6 +45,7 @@ export function parsePartResearchRequest(input, path = "partRequest") {
       input.steps.forEach((s, i) => expectEnum(errors, `${path}.steps[${i}]`, s, PART_SOURCE_STEPS));
     }
   }
+  const mode = parseExecutionMode(input, path, errors);
   if (errors.length) return bad(errors);
   return ok({
     mpn: displayMpn(input.mpn),
@@ -51,6 +53,7 @@ export function parsePartResearchRequest(input, path = "partRequest") {
     holderQty: input.holderQty ?? undefined,
     cost: input.cost ?? undefined,
     steps: input.steps ?? ["lcsc", "hqew", "intel", "findchips", "icnet"],
+    mode,
   });
 }
 

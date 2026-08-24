@@ -4,7 +4,14 @@
  *
  * No @deepseek-ai imports. No SQL. No confirmImport.
  */
-export { CONTRACT_VERSION, SOURCE_KEYS, displayMpn, normalizeMpnKey } from "./common.js";
+export {
+  CONTRACT_VERSION,
+  EXECUTION_MODES,
+  SOURCE_KEYS,
+  displayMpn,
+  normalizeMpnKey,
+  parseExecutionMode,
+} from "./common.js";
 
 export {
   IMPORT_KINDS,

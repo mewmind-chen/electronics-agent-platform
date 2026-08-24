@@ -28,7 +28,7 @@ test("POST /v1/import/extract returns candidates for mapped CSV and does not wri
       ...process.env,
       AGENT_API_PORT: String(port),
       AGENT_API_HOST: "127.0.0.1",
-      ELECTRONICS_HARNESS_STUB: "1",
+      ELECTRONICS_HARNESS_STUB: "",
       DEEPSEEK_API_KEY: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -70,10 +70,9 @@ test("POST /v1/import/extract returns candidates for mapped CSV and does not wri
     });
     const pendingBody = await pending.json();
     assert.equal(pending.status, 200);
-    assert.equal(pendingBody.needsAgent, false);
-    assert.equal(pendingBody.viaHarness, true);
-    assert.ok(pendingBody.toolsCalled.includes("import_normalize_text"));
-    assert.ok(pendingBody.toolsCalled.includes("import_validate_rows"));
+    assert.equal(pendingBody.viaHarness, false);
+    assert.equal(pendingBody.usedAi, false);
+    assert.notEqual(pendingBody.route, "stub");
   } finally {
     child.kill("SIGTERM");
   }

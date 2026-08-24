@@ -19,6 +19,7 @@ import {
   fail,
   isPlainObject,
   ok,
+  parseExecutionMode,
   rejectWriteSemantics,
 } from "./common.js";
 
@@ -53,6 +54,7 @@ export function parseImportRequest(input, path = "importRequest") {
   if (input.filename != null) expectString(errors, `${path}.filename`, input.filename, { allowEmpty: true, max: 260 });
   if (input.fileBase64 != null) expectString(errors, `${path}.fileBase64`, input.fileBase64, { allowEmpty: true, max: 8_000_000 });
   if (input.mime != null) expectString(errors, `${path}.mime`, input.mime, { allowEmpty: true, max: 120 });
+  const mode = parseExecutionMode(input, path, errors);
   if (errors.length) return bad(errors);
   return ok({
     kind,
@@ -61,6 +63,7 @@ export function parseImportRequest(input, path = "importRequest") {
     filename: input.filename ?? undefined,
     fileBase64: input.fileBase64 ?? undefined,
     mime: input.mime ?? undefined,
+    mode,
   });
 }
 

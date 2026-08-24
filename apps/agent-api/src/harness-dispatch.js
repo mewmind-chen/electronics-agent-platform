@@ -56,7 +56,7 @@ export async function stubOfficialAgent(job, tools = loadOfficialTools()) {
 
   if (job.kind === "hello") {
     const out = await call("hello_ping", { token: job.token });
-    return { ...out, viaHarness: true, toolsCalled: called };
+    return { ...out, viaHarness: false, usedAi: false, route: "stub", toolsCalled: called };
   }
 
   if (job.kind === "import") {
@@ -84,7 +84,7 @@ export async function stubOfficialAgent(job, tools = loadOfficialTools()) {
         else if (/usd|price|单价|价钱/.test(key)) columns.push({ header: h, target: "price" });
       }
       if (!columns.some((c) => c.target === "mpn")) {
-        return { ok: true, candidates: [], usedAi: true, viaHarness: true, toolsCalled: called, reason: "no_mpn_header" };
+        return { ok: true, candidates: [], usedAi: false, viaHarness: false, route: "stub", toolsCalled: called, reason: "no_mpn_header" };
       }
       const applied = await call("import_apply_mapping", {
         sourceType: input.sourceType,
@@ -99,8 +99,9 @@ export async function stubOfficialAgent(job, tools = loadOfficialTools()) {
         ok: applied.ok !== false,
         candidates: applied.candidates || [],
         mapping: applied.mapping || { columns },
-        usedAi: true,
-        viaHarness: true,
+        usedAi: false,
+        viaHarness: false,
+        route: "stub",
         toolsCalled: called,
       };
     }
@@ -120,8 +121,9 @@ export async function stubOfficialAgent(job, tools = loadOfficialTools()) {
     return {
       ok: true,
       candidates: validated.candidates || [],
-      usedAi: true,
-      viaHarness: true,
+      usedAi: false,
+      viaHarness: false,
+      route: "stub",
       toolsCalled: called,
     };
   }
@@ -133,7 +135,7 @@ export async function stubOfficialAgent(job, tools = loadOfficialTools()) {
       steps: job.input.steps,
       firecrawlKey: job.ctx?.firecrawlKey,
     });
-    return { ...out, viaHarness: true, toolsCalled: called };
+    return { ...out, viaHarness: false, usedAi: false, route: "stub", toolsCalled: called };
   }
 
   if (job.kind === "company") {
@@ -142,7 +144,7 @@ export async function stubOfficialAgent(job, tools = loadOfficialTools()) {
       goal: job.input.goal,
       firecrawlKey: job.ctx?.firecrawlKey,
     });
-    return { ...out, viaHarness: true, toolsCalled: called };
+    return { ...out, viaHarness: false, usedAi: false, route: "stub", toolsCalled: called };
   }
 
   throw new Error(`unknown harness job ${job.kind}`);

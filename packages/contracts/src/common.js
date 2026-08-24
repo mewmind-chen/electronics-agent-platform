@@ -3,7 +3,8 @@
  * These types must stay free of @deepseek-ai / Harness imports.
  */
 
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.2.1";
+export const EXECUTION_MODES = Object.freeze(["auto", "agent", "core"]);
 
 export const CURRENCIES = Object.freeze(["USD", "CNY"]);
 export const COST_TAXES = Object.freeze(["none", "exclusive", "inclusive"]);
@@ -35,6 +36,18 @@ export function isPlainObject(v) {
 
 export function fail(errors, path, message) {
   errors.push({ path, message });
+}
+
+/** auto = default. viaAgent:true maps to agent for one-release compatibility. */
+export function parseExecutionMode(input, path, errors) {
+  if (!isPlainObject(input)) return "auto";
+  if (input.mode != null) {
+    expectEnum(errors, `${path}.mode`, input.mode, EXECUTION_MODES);
+    return EXECUTION_MODES.includes(input.mode) ? input.mode : "auto";
+  }
+  if (input.viaAgent === true) return "agent";
+  if (input.viaAgent === false) return "core";
+  return "auto";
 }
 
 export function expectEnum(errors, path, value, allowed) {

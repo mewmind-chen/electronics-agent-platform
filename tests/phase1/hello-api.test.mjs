@@ -39,6 +39,9 @@ test("GET /health does not require a model turn", async () => {
     assert.ok(body.routes.includes("/v1/hello"));
     assert.ok(body.routes.includes("/v1/import/extract"));
     assert.ok(body.routes.includes("/v1/parts/research"));
+    assert.equal(typeof body.agent.available, "boolean");
+    assert.equal(body.agent.modeDefault, "auto");
+    assert.equal(typeof body.agent.policy.provider, "string");
   } finally {
     child.kill("SIGTERM");
   }

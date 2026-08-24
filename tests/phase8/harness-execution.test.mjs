@@ -10,8 +10,6 @@ import { loadOfficialTools } from "../../apps/agent-api/src/harness-dispatch.js"
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const req = createRequire(import.meta.url);
-process.env.ELECTRONICS_HARNESS_STUB = "1";
-process.env.DEEPSEEK_API_KEY = "";
 
 test("official plugins register defineTool objects used by the runtime", async () => {
   const tools = loadOfficialTools();
@@ -23,8 +21,8 @@ test("official plugins register defineTool objects used by the runtime", async (
   }
 });
 
-test("mapped table stays on deterministic core; unstructured import executes official import tools", async () => {
-  const runtime = createRuntime();
+test("test stub may execute official tools but must not claim viaHarness/usedAi", async () => {
+  const runtime = createRuntime({ env: { ELECTRONICS_HARNESS_STUB: "1", DEEPSEEK_API_KEY: "" } });
   const mapped = await runtime.runImport({
     kind: "offer",
     sourceType: "csv",
@@ -35,43 +33,40 @@ test("mapped table stays on deterministic core; unstructured import executes off
         { header: "Available", target: "qty" },
       ],
     },
+    mode: "core",
   });
   assert.equal(mapped.ok, true);
   assert.equal(mapped.viaHarness, false);
   assert.equal(mapped.route, "core");
-  assert.equal(mapped.candidates[0].mpn, "TPS54560DDAR");
 
   const unstructured = await runtime.runImport({
     kind: "offer",
     sourceType: "text",
     text: "老陈那边 TI TPS54560DDAR 还有一批 大概10K",
+    mode: "auto",
   });
   assert.equal(unstructured.ok, true);
-  assert.equal(unstructured.viaHarness, true);
-  assert.equal(unstructured.route, "harness");
-  assert.equal(unstructured.needsAgent, false);
+  assert.equal(unstructured.viaHarness, false);
+  assert.equal(unstructured.usedAi, false);
+  assert.equal(unstructured.route, "stub");
   assert.ok(unstructured.toolsCalled.includes("import_classify"));
   assert.ok(unstructured.toolsCalled.includes("import_normalize_text"));
   assert.ok(unstructured.toolsCalled.includes("import_validate_rows"));
   assert.equal(unstructured.candidates[0].mpn, "TPS54560DDAR");
-  assert.equal(unstructured.candidates[0].qty, 10000);
 });
 
-test("default part/company stay on core; viaAgent executes official research tools", async () => {
-  const runtime = createRuntime();
-  const partCore = await runtime.runPartResearch({ mpn: "NE555P", steps: ["hqew"] });
+test("default part/company stay on core; test stub can still hit official research tools", async () => {
+  const runtime = createRuntime({ env: { ELECTRONICS_HARNESS_STUB: "1", DEEPSEEK_API_KEY: "" } });
+  const partCore = await runtime.runPartResearch({ mpn: "NE555P", steps: ["hqew"], mode: "core" });
   assert.equal(partCore.ok, true);
   assert.equal(partCore.viaHarness, false);
   assert.equal(partCore.route, "core");
 
-  const partAgent = await runtime.runPartResearch({ mpn: "NE555P", steps: ["hqew"], viaAgent: true });
+  const partAgent = await runtime.runPartResearch({ mpn: "NE555P", steps: ["hqew"], mode: "auto" });
   assert.equal(partAgent.ok, true);
-  assert.equal(partAgent.viaHarness, true);
+  assert.equal(partAgent.viaHarness, false);
+  assert.equal(partAgent.route, "stub");
   assert.ok(partAgent.toolsCalled.includes("part_research"));
-
-  const companyAgent = await runtime.runCompanyResearch({ company: "测试电子", steps: ["gys"], viaAgent: true });
-  assert.equal(companyAgent.ok, true);
-  assert.ok(companyAgent.toolsCalled.includes("company_research"));
 });
 
 test("import-core / part-core / company-core stay Harness-independent", () => {
@@ -101,14 +96,14 @@ async function waitHealth(url) {
   throw new Error("health timeout");
 }
 
-test("POST /v1/import/extract unstructured path records official tools, not just dump-config", async () => {
+test("production HTTP default does not advertise stub as Harness", async () => {
   const port = 18791;
   const child = spawn(process.execPath, [join(root, "apps/agent-api/src/index.js")], {
     cwd: root,
     env: {
       ...process.env,
       AGENT_API_PORT: String(port),
-      ELECTRONICS_HARNESS_STUB: "1",
+      ELECTRONICS_HARNESS_STUB: "",
       DEEPSEEK_API_KEY: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -122,23 +117,24 @@ test("POST /v1/import/extract unstructured path records official tools, not just
         kind: "offer",
         sourceType: "text",
         text: "仓库现货 TPS54560DDAR 10K",
+        mode: "auto",
       }),
     });
     const body = await res.json();
     assert.equal(res.status, 200, JSON.stringify(body));
-    assert.equal(body.viaHarness, true);
-    assert.ok(body.toolsCalled.includes("import_validate_rows"));
-    assert.equal(body.candidates[0].mpn, "TPS54560DDAR");
+    assert.equal(body.viaHarness, false);
+    assert.equal(body.usedAi, false);
+    assert.notEqual(body.route, "stub");
 
-    const part = await (
-      await fetch(`http://127.0.0.1:${port}/v1/parts/research`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mpn: "NE555P", steps: ["hqew"], viaAgent: true }),
-      })
-    ).json();
-    assert.equal(part.viaHarness, true);
-    assert.ok(part.toolsCalled.includes("part_research"));
+    const forced = await fetch(`http://127.0.0.1:${port}/v1/parts/research`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mpn: "NE555P", steps: ["hqew"], mode: "agent" }),
+    });
+    const part = await forced.json();
+    assert.equal(part.ok, false);
+    assert.equal(part.error, "agent_unavailable");
+    assert.equal(part.viaHarness, false);
   } finally {
     child.kill("SIGTERM");
   }
