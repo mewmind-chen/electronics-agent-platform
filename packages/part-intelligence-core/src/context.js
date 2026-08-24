@@ -24,7 +24,39 @@ export function resolveBusinessContext(input = {}, ctx = {}) {
   return { ok: true, value: parsed.value };
 }
 
-export function adviseFromContext(business, publicState) {
+/**
+ * Context adviser seam. Business-specific advice is pluggable; the default
+ * rule set keeps the Phase 9.3 behavior. Advisers must never write a DB and
+ * must treat internal context as non-evidence.
+ */
+export function createContextAdviser() {
+  const advisers = [];
+
+  /** Register an adviser (business, publicState) => advice | null. Returns an unregister fn. */
+  function register(adviser) {
+    if (typeof adviser !== "function") throw new Error("adviser must be a function");
+    advisers.push(adviser);
+    return () => {
+      const i = advisers.indexOf(adviser);
+      if (i >= 0) advisers.splice(i, 1);
+    };
+  }
+
+  function advise(business, publicState) {
+    for (const adviser of advisers) {
+      const out = adviser(business, publicState);
+      if (out) return out;
+    }
+    return null;
+  }
+
+  return { register, advise };
+}
+
+const defaultContextAdviser = createContextAdviser();
+
+// Default rule set: internal context changes the combined advice, never evidence.
+defaultContextAdviser.register((business, publicState) => {
   const inv = business?.inventory;
   const quote = business?.quotation;
   const onHand = Number(inv?.onHand || 0);
@@ -68,7 +100,19 @@ export function adviseFromContext(business, publicState) {
     combined: "综合建议：内部数字优先于无证据的公开判断。",
     usedInternal: true,
   };
+});
+
+export function adviseFromContext(business, publicState, adviser = defaultContextAdviser) {
+  return adviser.advise(business, publicState) || {
+    action: "对照公开市场后人工确认",
+    internalView: "无匹配的上下文建议。",
+    combined: "综合建议：需人工确认。",
+    usedInternal: Boolean(business?.inventory || business?.quotation),
+  };
 }
+
+/** @deprecated use createContextAdviser() for pluggable business rules. */
+export const defaultAdviser = defaultContextAdviser;
 
 /**
  * Enrich an already-completed public part-research result with request-scoped
