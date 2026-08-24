@@ -44,6 +44,7 @@ test("deployment files require runtime auth, bind the container safely, and excl
   assert.match(compose, /no-new-privileges:true/);
   assert.match(example, /^AGENT_API_TOKEN=$/m);
   assert.match(workflow, /npm test/);
+  assert.match(workflow, /@deepseek-ai\/dsh@0\.1\.0-rc\.6/);
   assert.doesNotMatch(workflow, /cache:\s*npm/);
   assert.match(runtime, /mode:\s*read-only/);
   assert.doesNotMatch(runtime, /mode:\s*danger-full-access/);

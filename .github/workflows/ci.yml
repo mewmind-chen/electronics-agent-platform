@@ -16,4 +16,8 @@ jobs:
           # This repository intentionally has no committed root lockfile yet.
           # Do not enable setup-node's npm cache until a reviewed lockfile lands.
       - run: npm install --ignore-scripts
+      # Phase 1 deliberately proves the official CLI composition. Developer
+      # machines may have `dsh` globally; a clean runner must install the same
+      # pinned CLI explicitly before executing that invariant.
+      - run: npm install --no-save --ignore-scripts @deepseek-ai/dsh@0.1.0-rc.6
       - run: npm test
