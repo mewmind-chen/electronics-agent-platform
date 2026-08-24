@@ -16,7 +16,7 @@ import { parseExecutionMode } from "@electronics/contracts";
 import { extractImport } from "@electronics/import-core";
 import { researchPart } from "@electronics/part-intelligence-core";
 import { researchCompany } from "@electronics/company-intelligence-core";
-import { inferTaskFromInput, toModelRoute } from "@electronics/model-policy";
+import { inferTaskFromInput, nextEscalationRole, toModelRoute } from "@electronics/model-policy";
 import {
   isAgentAvailable,
   resolveAgentRuntime,
@@ -294,7 +294,7 @@ export function createRuntime(overrides = {}) {
           reason: core.reason || AGENT_UNAVAILABLE,
         };
       }
-      return {
+      let out = {
         ok: agent.ok !== false,
         candidates: agent.candidates || [],
         mapping: agent.mapping ?? null,
@@ -309,6 +309,21 @@ export function createRuntime(overrides = {}) {
         textPreview: core.textPreview,
         modelRoute: agent.modelRoute || null,
       };
+      const escalate = nextEscalationRole("import", out, out.modelRoute?.role || "fast");
+      if (escalate && mode !== "core") {
+        const again = await tryAgent({ kind: "import", input: { ...input, role: escalate } }, mode);
+        if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
+          out = {
+            ...out,
+            ...again,
+            candidates: again.candidates || out.candidates,
+            usedAi: true,
+            viaHarness: Boolean(again.viaHarness),
+            modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : out.modelRoute,
+          };
+        }
+      }
+      return out;
     },
 
     async runPartResearch(input, ctx = {}) {
@@ -318,6 +333,13 @@ export function createRuntime(overrides = {}) {
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
         return withCoreMeta(await researchPart(input, ctx), mode, "agent_unavailable");
+      }
+      const escalate = nextEscalationRole("part", agent, agent.modelRoute?.role || "reasoning");
+      if (escalate && mode !== "core") {
+        const again = await tryAgent({ kind: "part", input: { ...input, role: escalate }, ctx }, mode);
+        if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
+          return { ...again, modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : again.modelRoute };
+        }
       }
       return agent;
     },
@@ -329,6 +351,13 @@ export function createRuntime(overrides = {}) {
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
         return withCoreMeta(await researchCompany(input, ctx), mode, "agent_unavailable");
+      }
+      const escalate = nextEscalationRole("company", agent, agent.modelRoute?.role || "reasoning");
+      if (escalate && mode !== "core") {
+        const again = await tryAgent({ kind: "company", input: { ...input, role: escalate }, ctx }, mode);
+        if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
+          return { ...again, modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : again.modelRoute };
+        }
       }
       return agent;
     },

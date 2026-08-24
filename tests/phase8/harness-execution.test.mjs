@@ -104,6 +104,7 @@ test("production HTTP default does not advertise stub as Harness", async () => {
       ...process.env,
       AGENT_API_PORT: String(port),
       ELECTRONICS_HARNESS_STUB: "",
+      ELECTRONICS_IGNORE_LIVE: "1",
       DEEPSEEK_API_KEY: "",
     },
     stdio: ["ignore", "pipe", "pipe"],

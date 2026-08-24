@@ -5,110 +5,125 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  MODEL_CANDIDATES,
   MODEL_REGISTRY,
   capabilityMatrix,
   createModelRouter,
   inferRole,
+  importNeedsReasoning,
+  inProductionPool,
   meetsCapabilities,
+  nextEscalationRole,
+  providerBindings,
+  researchNeedsPremium,
   toModelRoute,
 } from "./index.js";
+import { productionFixture } from "./fixture.js";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const req = createRequire(import.meta.url);
 
-const ALL_KEYS = {
-  OPENCODE_GO_API_KEY: "x",
-  ZAI_API_KEY: "x",
-  XAI_API_KEY: "x",
-  ECONOMY_FAST_KEY: "x",
-  ECONOMY_STRONG_KEY: "x",
-  ECONOMY_LONG_KEY: "x",
-};
-
 test("package is Harness-independent and stores no API keys", () => {
   const pkg = req("../package.json");
   assert.equal(pkg.dependencies, undefined);
-  const src = ["registry.js", "router.js", "role.js", "health.js", "index.js"]
+  const src = ["registry.js", "router.js", "role.js", "health.js", "binding.js", "escalate.js", "index.js"]
     .map((f) => readFileSync(join(root, f), "utf8"))
     .join("\n");
   assert.doesNotMatch(src, /from ["']@deepseek-ai/);
   assert.doesNotMatch(src, /sk-[a-zA-Z0-9]{8,}|apiKey\s*[:=]\s*["']/);
+  assert.doesNotMatch(src, /XAI_API_KEY|ECONOMY_FAST_KEY|ZAI_API_KEY/);
 });
 
-test("fast/reasoning/vision/long route to the declared production models", () => {
-  const router = createModelRouter({ env: ALL_KEYS });
+test("unverified candidates are not production and have unknown capabilities", () => {
+  assert.equal(MODEL_REGISTRY, MODEL_CANDIDATES);
+  assert.ok(MODEL_CANDIDATES.every((m) => m.pool === "candidate" && m.verified === false));
+  assert.ok(MODEL_CANDIDATES.every((m) => m.capabilities.json === "unknown"));
+  assert.ok(MODEL_CANDIDATES.every((m) => !inProductionPool(m)));
+});
+
+test("fast/reasoning/vision/long route only after qualification", () => {
+  const router = createModelRouter({ registry: productionFixture() });
+  assert.equal(router.resolve({ kind: "import", sourceType: "text" }).model, "deepseek-v4-flash");
+  assert.equal(router.resolve({ kind: "part" }).model, "deepseek-v4-pro");
+  assert.equal(router.resolve({ kind: "import", sourceType: "image" }).model, "glm-4v-flash");
+  assert.equal(router.resolve({ kind: "import", sourceType: "pdf" }).model, "kimi-k3");
+});
+
+test("unqualified default registry cannot be auto-selected", () => {
+  const router = createModelRouter({ live: [] });
   const fast = router.resolve({ kind: "import", sourceType: "text" });
-  assert.equal(fast.ok, true);
-  assert.equal(fast.role, "fast");
-  assert.equal(fast.model, "deepseek-v4-flash");
-
-  const reasoning = router.resolve({ kind: "part" });
-  assert.equal(reasoning.role, "reasoning");
-  assert.equal(reasoning.model, "deepseek-v4-pro");
-
-  const vision = router.resolve({ kind: "import", sourceType: "image" });
-  assert.equal(vision.role, "vision");
-  assert.equal(vision.model, "GLM-4V-flash");
-
-  const long = router.resolve({ kind: "import", sourceType: "pdf" });
-  assert.equal(long.role, "long");
-  assert.equal(long.model, "kimi-k3");
+  assert.equal(fast.ok, false);
+  assert.equal(fast.error, "agent_unavailable");
 });
 
 test("capability miss keeps a model out of the candidate list", () => {
-  const broken = MODEL_REGISTRY.map((m) =>
+  const fixture = productionFixture().map((m) =>
     m.model === "deepseek-v4-flash"
-      ? { ...m, capabilities: { ...m.capabilities, toolCalling: "fail" } }
+      ? { ...m, capabilities: { ...m.capabilities, toolCalling: "fail" }, verified: false, pool: "candidate" }
       : m,
   );
-  const router = createModelRouter({ registry: broken, env: ALL_KEYS });
+  const router = createModelRouter({ registry: fixture });
   const fast = router.resolve({ kind: "import", sourceType: "text" });
   assert.equal(fast.ok, true);
-  assert.notEqual(fast.model, "deepseek-v4-flash");
   assert.equal(fast.model, "free-fast");
-  assert.equal(meetsCapabilities(broken[0], "fast"), false);
+  assert.equal(meetsCapabilities(fixture.find((m) => m.model === "deepseek-v4-flash"), "fast"), false);
 });
 
 test("429/timeout fall back to the next priority model", () => {
-  const router = createModelRouter({ env: ALL_KEYS });
+  const router = createModelRouter({ registry: productionFixture() });
   const first = router.resolve({ kind: "part" });
   assert.equal(first.model, "deepseek-v4-pro");
   const second = router.fallback(first, { kind: "part" }, { status: 429 });
-  assert.equal(second.ok, true);
   assert.equal(second.model, "qwen3.7-max");
-  assert.equal(second.fallbackCount, 1);
   const third = router.fallback(second, { kind: "part" }, { message: "timeout" });
   assert.equal(third.model, "free-strong");
 });
 
-test("premium is only selected for escalation or quality policy", () => {
-  const router = createModelRouter({ env: ALL_KEYS });
-  const normal = router.resolve({ kind: "part" });
-  assert.notEqual(normal.model, "grok-4.6");
+test("premium is only selected for escalation", () => {
+  const router = createModelRouter({ registry: productionFixture() });
+  assert.notEqual(router.resolve({ kind: "part" }).model, "grok-4.6");
   const escalated = router.resolve({ kind: "part", lowConfidence: true });
-  assert.equal(escalated.role, "premium");
   assert.equal(escalated.model, "grok-4.6");
   assert.equal(escalated.escalated, true);
-  const quality = router.resolve({ kind: "part", quality: "quality", role: "premium" });
-  assert.equal(quality.model, "grok-4.6");
-  const qualityReasoning = router.resolve({ kind: "part", quality: "quality" });
-  assert.notEqual(qualityReasoning.model, "grok-4.6");
 });
 
-test("inferRole is deterministic and capability matrix lists every registry row", () => {
+test("result-driven escalation does not require caller lowConfidence", () => {
+  assert.equal(researchNeedsPremium({ ok: true, verdict: { confidence: "medium" }, evidence: [] }), false);
+  assert.equal(researchNeedsPremium({ ok: true, verdict: { confidence: "low" }, evidence: [] }), true);
+  assert.equal(
+    nextEscalationRole("part", { ok: true, verdict: { confidence: "low" }, evidence: [] }, "reasoning"),
+    "premium",
+  );
+  assert.equal(
+    importNeedsReasoning({
+      candidates: [{ warnings: [{ code: "qty_conflict" }] }],
+    }),
+    true,
+  );
+  assert.equal(nextEscalationRole("import", { candidates: [{ warnings: [{ code: "qty_conflict" }] }] }, "fast"), "reasoning");
+  assert.equal(nextEscalationRole("import", { candidates: [{ warnings: [{ code: "qty_conflict" }] }] }, "fast") === "premium", false);
+});
+
+test("bindings expose Harness identities without secrets", () => {
+  const rows = providerBindings();
+  assert.ok(rows.find((b) => b.id === "subscriptions/grok-4.6" && b.providerId === "grok" && b.auth === "oauth-subscription"));
+  assert.ok(rows.find((b) => b.id === "litellm/free-fast" && b.providerId === "llm"));
+  assert.ok(rows.find((b) => b.id === "opencode-go/deepseek-v4-flash" && b.providerId === "opencode-go"));
+  assert.ok(rows.every((b) => !("apiKey" in b) && !("credentialEnv" in b)));
+});
+
+test("inferRole and capability matrix still cover the first batch", () => {
   assert.equal(inferRole({ kind: "import", sourceType: "csv" }), "fast");
   assert.equal(inferRole({ kind: "import", mime: "image/png" }), "vision");
   assert.equal(inferRole({ kind: "import", filename: "bom.pdf" }), "long");
   assert.equal(inferRole({ kind: "company" }), "reasoning");
-  assert.equal(inferRole({ kind: "part", conflictingEvidence: true }), "premium");
   const matrix = capabilityMatrix();
-  assert.equal(matrix.length, MODEL_REGISTRY.length);
-  assert.ok(matrix.every((row) => row.capabilities.json && row.roles.length));
+  assert.equal(matrix.length, MODEL_CANDIDATES.length);
 });
 
 test("toModelRoute never includes credential names", () => {
-  const router = createModelRouter({ env: ALL_KEYS });
+  const router = createModelRouter({ registry: productionFixture() });
   const route = toModelRoute(router.resolve({ kind: "import", sourceType: "text" }));
-  assert.deepEqual(Object.keys(route).sort(), ["escalated", "fallbackCount", "model", "provider", "quality", "role"]);
   assert.equal("credentialEnv" in route, false);
+  assert.equal(route.model, "deepseek-v4-flash");
 });

@@ -1,6 +1,6 @@
 /**
- * Production model pool + capability matrix.
- * Smoke status is declared, not guessed. Unverified models stay out of production.
+ * Model registry. Live smoke is the only way into production.
+ * Unverified rows stay candidate with unknown capabilities.
  * No API keys. No official Harness SDK imports.
  */
 export const CAPABILITIES = Object.freeze(["json", "toolCalling", "structuredLong", "harness", "vision"]);
@@ -15,28 +15,28 @@ export const REQUIRED_BY_ROLE = Object.freeze({
 
 export const QUALITY_RANK = Object.freeze({ economy: 0, standard: 1, quality: 2 });
 
-const pass = Object.freeze({
-  json: "pass",
-  toolCalling: "pass",
-  structuredLong: "pass",
-  harness: "pass",
+const unknownCaps = Object.freeze({
+  json: "unknown",
+  toolCalling: "unknown",
+  structuredLong: "unknown",
+  harness: "unknown",
   vision: "n/a",
 });
 
 function model(spec) {
   return Object.freeze({
-    pool: "production",
+    pool: "candidate",
     quality: "standard",
-    health: "up",
-    verified: true,
-    notes: "",
+    health: "unknown",
+    verified: false,
+    notes: "live smoke unverified",
     ...spec,
-    capabilities: Object.freeze({ ...pass, ...(spec.capabilities || {}) }),
+    capabilities: Object.freeze({ ...unknownCaps, ...(spec.capabilities || {}) }),
   });
 }
 
-/** Declared first-version production pool. Live provider smoke is still unverified. */
-export const MODEL_REGISTRY = Object.freeze([
+/** First-batch candidates only. Production promotion is written by live qualification. */
+export const MODEL_CANDIDATES = Object.freeze([
   model({
     id: "opencode-go/deepseek-v4-flash",
     provider: "opencode-go",
@@ -44,7 +44,14 @@ export const MODEL_REGISTRY = Object.freeze([
     roles: ["fast"],
     quality: "economy",
     priority: 10,
-    credentialEnv: "OPENCODE_GO_API_KEY",
+  }),
+  model({
+    id: "litellm/free-fast",
+    provider: "llm",
+    model: "free-fast",
+    roles: ["fast"],
+    quality: "economy",
+    priority: 90,
   }),
   model({
     id: "opencode-go/deepseek-v4-pro",
@@ -53,7 +60,6 @@ export const MODEL_REGISTRY = Object.freeze([
     roles: ["reasoning"],
     quality: "standard",
     priority: 10,
-    credentialEnv: "OPENCODE_GO_API_KEY",
   }),
   model({
     id: "opencode-go/qwen3.7-max",
@@ -62,8 +68,15 @@ export const MODEL_REGISTRY = Object.freeze([
     roles: ["reasoning"],
     quality: "standard",
     priority: 20,
-    credentialEnv: "OPENCODE_GO_API_KEY",
-    notes: "reasoning fallback",
+    notes: "reasoning fallback; live smoke unverified",
+  }),
+  model({
+    id: "litellm/free-strong",
+    provider: "llm",
+    model: "free-strong",
+    roles: ["reasoning"],
+    quality: "economy",
+    priority: 90,
   }),
   model({
     id: "opencode-go/kimi-k3",
@@ -72,69 +85,95 @@ export const MODEL_REGISTRY = Object.freeze([
     roles: ["long"],
     quality: "standard",
     priority: 10,
-    credentialEnv: "OPENCODE_GO_API_KEY",
   }),
   model({
-    id: "zai/glm-4v-flash",
-    provider: "zai",
-    model: "GLM-4V-flash",
-    roles: ["vision"],
-    quality: "economy",
-    priority: 10,
-    credentialEnv: "ZAI_API_KEY",
-    capabilities: { vision: "pass" },
-  }),
-  model({
-    id: "xai/grok-4.6",
-    provider: "xai",
-    model: "grok-4.6",
-    roles: ["premium"],
-    quality: "quality",
-    priority: 10,
-    credentialEnv: "XAI_API_KEY",
-  }),
-  model({
-    id: "economy/free-fast",
-    provider: "economy",
-    model: "free-fast",
-    roles: ["fast"],
-    quality: "economy",
-    priority: 90,
-    credentialEnv: "ECONOMY_FAST_KEY",
-    notes: "economy fallback",
-  }),
-  model({
-    id: "economy/free-strong",
-    provider: "economy",
-    model: "free-strong",
-    roles: ["reasoning"],
-    quality: "economy",
-    priority: 90,
-    credentialEnv: "ECONOMY_STRONG_KEY",
-    notes: "economy fallback",
-  }),
-  model({
-    id: "economy/free-long",
-    provider: "economy",
+    id: "litellm/free-long",
+    provider: "llm",
     model: "free-long",
     roles: ["long"],
     quality: "economy",
     priority: 90,
-    credentialEnv: "ECONOMY_LONG_KEY",
-    notes: "economy fallback",
+  }),
+  model({
+    id: "subscriptions/grok-4.6",
+    provider: "grok",
+    model: "grok-4.6",
+    roles: ["premium"],
+    quality: "quality",
+    priority: 10,
+    notes: "X Premium OAuth via dsh-plugin-subscriptions; not a static secret",
+  }),
+  model({
+    id: "describe-image/glm-4v-flash",
+    provider: "describe-image",
+    model: "glm-4v-flash",
+    roles: ["vision"],
+    quality: "economy",
+    priority: 10,
+    capabilities: { vision: "unknown" },
+    notes: "current describe-image backend; agent-model status unverified",
   }),
 ]);
 
-export function capabilityMatrix(registry = MODEL_REGISTRY) {
+/** @deprecated alias kept for callers that still import MODEL_REGISTRY */
+export const MODEL_REGISTRY = MODEL_CANDIDATES;
+
+export function unknownCapabilities(vision = false) {
+  return {
+    json: "unknown",
+    toolCalling: "unknown",
+    structuredLong: "unknown",
+    harness: "unknown",
+    vision: vision ? "unknown" : "n/a",
+  };
+}
+
+export function applyQualification(registry, live = [], bindings = []) {
+  const byId = new Map((live || []).map((row) => [row.id, row]));
+  const bindById = new Map((bindings || []).map((row) => [row.id, row]));
+  return registry.map((entry) => {
+    const liveRow = byId.get(entry.id);
+    const bind = bindById.get(entry.id);
+    if (!liveRow) {
+      return {
+        ...entry,
+        providerId: bind?.providerId || entry.provider,
+        availability: bind?.availability || "unbound",
+        verified: false,
+        pool: "candidate",
+        capabilities: entry.capabilities,
+      };
+    }
+    const caps = { ...unknownCapabilities(entry.roles.includes("vision")), ...(liveRow.capabilities || {}) };
+    const required = REQUIRED_BY_ROLE[entry.roles[0]] || REQUIRED_BY_ROLE.fast;
+    const passed = required.every((cap) => caps[cap] === "pass");
+    return {
+      ...entry,
+      providerId: liveRow.providerId || bind?.providerId || entry.provider,
+      availability: liveRow.availability || bind?.availability || "unknown",
+      verified: Boolean(liveRow.verified && passed),
+      pool: liveRow.verified && passed ? "production" : "candidate",
+      health: liveRow.health || "unknown",
+      capabilities: caps,
+      failureReason: liveRow.failureReason || "",
+      notes: liveRow.notes || entry.notes,
+    };
+  });
+}
+
+export function capabilityMatrix(registry = MODEL_CANDIDATES) {
   return registry.map((m) => ({
     id: m.id,
     provider: m.provider,
+    providerId: m.providerId || m.provider,
     model: m.model,
     roles: m.roles,
     pool: m.pool,
     verified: m.verified,
+    availability: m.availability || "unknown",
     health: m.health,
     capabilities: m.capabilities,
+    failureReason: m.failureReason || "",
   }));
 }
 

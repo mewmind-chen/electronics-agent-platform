@@ -2,14 +2,15 @@
  * Deterministic model router. Priority + capability + health + quality.
  * Never random. Never logs or returns API keys.
  */
-import { QUALITY_RANK, inProductionPool, meetsCapabilities, MODEL_REGISTRY } from "./registry.js";
+import { QUALITY_RANK, applyQualification, inProductionPool, meetsCapabilities, MODEL_CANDIDATES } from "./registry.js";
 import { inferRole } from "./role.js";
 import { classifyProviderError, createHealthBook, isRetryableProviderError } from "./health.js";
+import { providerBindings } from "./binding.js";
+import { loadLiveResults } from "./live.js";
 
-function hasCredential(entry, env) {
-  if (!entry.credentialEnv) return true;
-  if (!env) return true;
-  return Boolean(String(env[entry.credentialEnv] || "").trim());
+function isAvailable(entry) {
+  const avail = entry.availability || "unknown";
+  return avail === "bound" || avail === "up" || avail === "available";
 }
 
 function qualityOk(entry, quality, role) {
@@ -27,23 +28,25 @@ function sortCandidates(list) {
 }
 
 export function createModelRouter({
-  registry = MODEL_REGISTRY,
-  env = process.env,
+  registry,
+  live = loadLiveResults(),
+  bindings = providerBindings(),
   health,
   now,
 } = {}) {
+  const qualified = registry || applyQualification(MODEL_CANDIDATES, live, bindings);
   const book = health || createHealthBook({ now });
 
   function candidatesFor(role, quality) {
     return sortCandidates(
-      registry.filter(
+      qualified.filter(
         (entry) =>
           inProductionPool(entry) &&
+          isAvailable(entry) &&
           entry.roles.includes(role) &&
           meetsCapabilities(entry, role) &&
           qualityOk(entry, quality, role) &&
-          book.isHealthy(entry) &&
-          hasCredential(entry, env),
+          book.isHealthy(entry),
       ),
     );
   }
@@ -54,7 +57,10 @@ export function createModelRouter({
     const role = inferRole(task);
 
     if (modelMode === "fixed") {
-      const hit = registry.find((e) => e.provider === task.provider && e.model === task.model);
+      const hit = qualified.find(
+        (e) =>
+          (e.provider === task.provider || e.providerId === task.provider) && e.model === task.model,
+      );
       if (!hit || !inProductionPool(hit) || !meetsCapabilities(hit, role) || !book.isHealthy(hit) || !hasCredential(hit, env)) {
         return { ok: false, error: "agent_unavailable", reason: "fixed_model_unavailable", role, quality, modelMode };
       }
@@ -85,14 +91,15 @@ export function createModelRouter({
     return {
       ok: true,
       role,
-      provider: entry.provider,
+      provider: entry.providerId || entry.provider,
+      providerId: entry.providerId || entry.provider,
       model: entry.model,
       quality: entry.quality,
       requestedQuality: quality,
       fallbackCount,
       escalated,
       id: entry.id,
-      credentialEnv: entry.credentialEnv,
+      availability: entry.availability || "bound",
     };
   }
 
@@ -107,7 +114,7 @@ export function createModelRouter({
     if (!isRetryableProviderError(kind)) {
       return { ok: false, error: "agent_unavailable", reason: kind, role: previous?.role };
     }
-    const failed = registry.find((e) => sameModel(e, previous));
+    const failed = qualified.find((e) => sameModel(e, previous));
     if (failed) book.markFailure(failed, error);
     const quality = task.quality || previous?.requestedQuality || "standard";
     const role = previous?.role || inferRole(task);
@@ -139,5 +146,7 @@ export function stripSecrets(value) {
   delete out.credentialEnv;
   delete out.apiKey;
   delete out.token;
+  delete out.oauth;
+  delete out.authorization;
   return out;
 }

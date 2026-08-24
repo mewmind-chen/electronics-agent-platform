@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createModelRouter } from "../../packages/model-policy/src/index.js";
+import { productionFixture } from "../../packages/model-policy/src/fixture.js";
 import {
   isAgentAvailable,
   resolveAgentRuntime,
@@ -13,34 +14,27 @@ import { AGENT_UNAVAILABLE, createRuntime } from "../../apps/agent-api/src/runti
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
-const KEYS = {
-  OPENCODE_GO_API_KEY: "x",
-  ZAI_API_KEY: "x",
-  XAI_API_KEY: "x",
-  ECONOMY_FAST_KEY: "x",
-  ECONOMY_STRONG_KEY: "x",
-  ECONOMY_LONG_KEY: "x",
-};
+test("unqualified default policy cannot resolve a production model", () => {
+  const policy = resolveModelPolicy({ kind: "import", sourceType: "text" }, {}, { router: createModelRouter({ live: [] }) });
+  assert.equal(policy.ok, false);
+});
 
-test("execution mode stays independent of model policy", () => {
-  const policy = resolveModelPolicy({ kind: "import", sourceType: "text" }, KEYS);
+test("qualified router hook still returns provider/model without secrets", () => {
+  const router = createModelRouter({ registry: productionFixture() });
+  const policy = resolveModelPolicy({ kind: "part" }, {}, { router, kind: "part" });
   assert.equal(policy.ok, true);
-  assert.equal(policy.model, "deepseek-v4-flash");
-  const runtime = createRuntime({
-    env: { ELECTRONICS_HARNESS_STUB: "", ...KEYS },
-    harnessAvailable: false,
-    modelPolicy: { provider: "future-router", model: "x-1", credentialEnv: "OTHER_KEY" },
-  });
-  assert.equal(runtime.modelPolicy.provider, "future-router");
-  assert.equal(runtime.modelPolicy.model, "x-1");
+  assert.equal(policy.model, "deepseek-v4-pro");
+  assert.equal(policy.credentialEnv, undefined);
 });
 
 test("isAgentAvailable asks the router, not a hardcoded DEEPSEEK_API_KEY", () => {
+  const router = createModelRouter({ registry: productionFixture() });
   assert.equal(
     isAgentAvailable({
-      env: KEYS,
+      env: {},
       processIsReady: true,
       task: { kind: "import", sourceType: "text" },
+      router,
     }),
     true,
   );
@@ -49,16 +43,19 @@ test("isAgentAvailable asks the router, not a hardcoded DEEPSEEK_API_KEY", () =>
       env: { DEEPSEEK_API_KEY: "present" },
       processIsReady: true,
       task: { kind: "import", sourceType: "text" },
+      router: createModelRouter({ live: [] }),
     }),
     false,
   );
 });
 
 test("resolveAgentRuntime is the router hook", () => {
+  const router = createModelRouter({ registry: productionFixture() });
   const resolved = resolveAgentRuntime({
-    env: KEYS,
+    env: {},
     task: { kind: "part" },
     overrideAvailable: true,
+    router,
   });
   assert.equal(resolved.available, true);
   assert.equal(resolved.policy.model, "deepseek-v4-pro");
@@ -98,7 +95,7 @@ test("auto with no resolvable model falls back to core", async () => {
 
 test("core never calls the router or starts Harness", async () => {
   let officialCalls = 0;
-  const router = createModelRouter({ env: KEYS });
+  const router = createModelRouter({ registry: productionFixture() });
   const orig = router.resolve.bind(router);
   let resolveHits = 0;
   router.resolve = (task) => {
@@ -106,7 +103,7 @@ test("core never calls the router or starts Harness", async () => {
     return orig(task);
   };
   const runtime = createRuntime({
-    env: { ELECTRONICS_HARNESS_STUB: "", ...KEYS },
+    env: { ELECTRONICS_HARNESS_STUB: "" },
     harnessAvailable: true,
     router,
     officialRunAgent: async () => {
@@ -125,10 +122,10 @@ test("core never calls the router or starts Harness", async () => {
 });
 
 test("429 from official runner uses router fallback metadata", async () => {
-  const router = createModelRouter({ env: KEYS });
+  const router = createModelRouter({ registry: productionFixture() });
   let calls = 0;
   const runtime = createRuntime({
-    env: { ELECTRONICS_HARNESS_STUB: "", ...KEYS },
+    env: { ELECTRONICS_HARNESS_STUB: "" },
     harnessAvailable: true,
     router,
     officialRunAgent: async (job) => {
@@ -146,4 +143,25 @@ test("429 from official runner uses router fallback metadata", async () => {
   assert.equal(out.modelRoute.model, "qwen3.7-max");
   assert.equal(out.modelRoute.fallbackCount, 1);
   assert.equal(runtime.harnessStarts, 2);
+});
+
+test("low-confidence part result escalates to premium without caller flag", async () => {
+  const router = createModelRouter({ registry: productionFixture() });
+  let seen = [];
+  const runtime = createRuntime({
+    env: { ELECTRONICS_HARNESS_STUB: "" },
+    harnessAvailable: true,
+    router,
+    officialRunAgent: async (job) => {
+      seen.push(job.input.role || "default");
+      if (!job.input.role || job.input.role === "reasoning") {
+        return { ok: true, verdict: { confidence: "low", state: "未知", claims: [] }, evidence: [] };
+      }
+      return { ok: true, verdict: { confidence: "medium", state: "平稳", claims: [] }, evidence: [] };
+    },
+  });
+  const out = await runtime.runPartResearch({ mpn: "NE555P", steps: ["hqew"], mode: "agent" });
+  assert.equal(out.modelRoute.role, "premium");
+  assert.equal(out.modelRoute.escalated, true);
+  assert.ok(seen.includes("premium"));
 });

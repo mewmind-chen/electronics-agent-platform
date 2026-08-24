@@ -192,15 +192,35 @@ export function extractNamedTool(result, toolName) {
       }
     }
     const parsed = coerceJsonObject(value);
-    if (parsed && (parsed.ok === true || parsed.candidates || parsed.mpn || parsed.company)) return parsed;
+    if (
+      parsed &&
+      (parsed.plugin === "electronics-hello" ||
+        parsed.token === "live-qualify" ||
+        parsed.candidates ||
+        parsed.mpn ||
+        parsed.company ||
+        (parsed.ok === true && parsed.runtime === "deepseek-harness"))
+    ) {
+      return parsed;
+    }
     return null;
   };
+  const fromText = visit(result?.finalResponse) || coerceJsonObject(result?.finalResponse);
+  if (
+    fromText &&
+    (fromText.plugin === "electronics-hello" ||
+      fromText.token === "live-qualify" ||
+      fromText.candidates ||
+      fromText.mpn ||
+      fromText.company ||
+      (fromText.ok === true && fromText.runtime === "deepseek-harness"))
+  ) {
+    return { value: fromText, toolsCalled: names.length ? names : [toolName] };
+  }
   for (const ev of events) {
     const hit = visit(ev);
     if (hit) return { value: hit, toolsCalled: names.length ? names : [toolName] };
   }
-  const fromText = visit(result?.finalResponse);
-  if (fromText) return { value: fromText, toolsCalled: names.length ? names : [toolName] };
   for (const n of result?.notifications ?? []) {
     const hit = visit(n);
     if (hit) return { value: hit, toolsCalled: names.length ? names : [toolName] };

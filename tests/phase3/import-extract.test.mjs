@@ -29,6 +29,7 @@ test("POST /v1/import/extract returns candidates for mapped CSV and does not wri
       AGENT_API_PORT: String(port),
       AGENT_API_HOST: "127.0.0.1",
       ELECTRONICS_HARNESS_STUB: "",
+      ELECTRONICS_IGNORE_LIVE: "1",
       DEEPSEEK_API_KEY: "",
     },
     stdio: ["ignore", "pipe", "pipe"],

@@ -60,16 +60,14 @@ export function resolveModelPolicy(input = {}, env = process.env, extras = {}) {
       reason: resolved.reason,
       provider: undefined,
       model: undefined,
-      credentialEnv: undefined,
       maxTokens: 2048,
       modelRoute: null,
     };
   }
   return {
     ok: true,
-    provider: resolved.provider,
+    provider: resolved.providerId || resolved.provider,
     model: resolved.model,
-    credentialEnv: resolved.credentialEnv,
     maxTokens: Number(input.maxTokens || env.DSH_MAX_TOKENS) > 0 ? Number(input.maxTokens || env.DSH_MAX_TOKENS) : 2048,
     modelRoute: toModelRoute(resolved),
     id: resolved.id,
@@ -87,10 +85,7 @@ export function isAgentAvailable({
   if (override !== undefined) return Boolean(override);
   if (!processIsReady) return false;
   if (policy?.ok === false) return false;
-  if (policy?.provider && policy?.model && policy?.ok !== false) {
-    if (policy.credentialEnv && !String(env[policy.credentialEnv] || "").trim()) return false;
-    return true;
-  }
+  if (policy?.provider && policy?.model && policy?.ok !== false) return true;
   const resolved = resolveModelPolicy(task || {}, env, { router, task });
   return Boolean(resolved.ok && resolved.provider && resolved.model);
 }

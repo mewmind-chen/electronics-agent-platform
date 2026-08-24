@@ -17,6 +17,17 @@
       - id: !!js process.env.DSH_MODEL ?? 'deepseek-chat'
         contextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 128000)
 
+# Real multi-provider adapters. Secrets stay in the host credentials store.
+- id: credentials
+  name: '@deepseek-ai/dsh-credentials-local'
+
+- id: settings
+  name: '@deepseek-ai/dsh-settings-file'
+
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+
+
 - id: sandbox
   name: '@deepseek-ai/dsh-sandbox-local'
 

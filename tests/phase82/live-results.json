@@ -1,0 +1,241 @@
+{
+  "at": "2026-08-24T05:29:23.687Z",
+  "processReady": true,
+  "catalog": [
+    {
+      "id": "opencode-go/deepseek-v4-flash",
+      "providerId": "opencode-go",
+      "model": "deepseek-v4-flash",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "opencode-go/deepseek-v4-pro",
+      "providerId": "opencode-go",
+      "model": "deepseek-v4-pro",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "opencode-go/qwen3.7-max",
+      "providerId": "opencode-go",
+      "model": "qwen3.7-max",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "opencode-go/kimi-k3",
+      "providerId": "opencode-go",
+      "model": "kimi-k3",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "litellm/free-fast",
+      "providerId": "llm",
+      "model": "free-fast",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "litellm/free-strong",
+      "providerId": "llm",
+      "model": "free-strong",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "litellm/free-long",
+      "providerId": "llm",
+      "model": "free-long",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "llm-pi-ai"
+    },
+    {
+      "id": "subscriptions/grok-4.6",
+      "providerId": "grok",
+      "model": "grok-4.6",
+      "availability": "bound",
+      "auth": "oauth-subscription",
+      "source": "dsh-plugin-subscriptions"
+    },
+    {
+      "id": "describe-image/glm-4v-flash",
+      "providerId": "describe-image",
+      "model": "glm-4v-flash",
+      "availability": "bound",
+      "auth": "plugin-settings",
+      "source": "describe-image-plugin"
+    }
+  ],
+  "results": [
+    {
+      "id": "opencode-go/deepseek-v4-flash",
+      "providerId": "opencode-go",
+      "model": "deepseek-v4-flash",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 4441
+    },
+    {
+      "id": "litellm/free-fast",
+      "providerId": "llm",
+      "model": "free-fast",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 15419
+    },
+    {
+      "id": "opencode-go/deepseek-v4-pro",
+      "providerId": "opencode-go",
+      "model": "deepseek-v4-pro",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 5633
+    },
+    {
+      "id": "opencode-go/qwen3.7-max",
+      "providerId": "opencode-go",
+      "model": "qwen3.7-max",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 8696
+    },
+    {
+      "id": "litellm/free-strong",
+      "providerId": "llm",
+      "model": "free-strong",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 7407
+    },
+    {
+      "id": "opencode-go/kimi-k3",
+      "providerId": "opencode-go",
+      "model": "kimi-k3",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 39455
+    },
+    {
+      "id": "litellm/free-long",
+      "providerId": "llm",
+      "model": "free-long",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "",
+      "notes": "",
+      "ms": 36910
+    },
+    {
+      "id": "subscriptions/grok-4.6",
+      "providerId": "grok",
+      "model": "grok-4.6",
+      "verified": false,
+      "pool": "candidate",
+      "availability": "bound",
+      "capabilities": {
+        "json": "fail",
+        "toolCalling": "fail",
+        "structuredLong": "fail",
+        "harness": "pass",
+        "vision": "n/a"
+      },
+      "failureReason": "smoke checks incomplete",
+      "notes": "",
+      "ms": 502
+    },
+    {
+      "id": "describe-image/glm-4v-flash",
+      "providerId": "describe-image",
+      "model": "glm-4v-flash",
+      "verified": false,
+      "pool": "candidate",
+      "availability": "bound",
+      "capabilities": {
+        "json": "fail",
+        "toolCalling": "fail",
+        "structuredLong": "fail",
+        "harness": "fail",
+        "vision": "unknown"
+      },
+      "failureReason": "describe-image is a plugin backend, not a proven Harness agent model",
+      "notes": ""
+    }
+  ]
+}
