@@ -45,22 +45,24 @@ export async function researchCompany(input, ctx = {}) {
   let shopRows = [];
   let intel = null;
   let shopUrl = "";
+  const stepResults = [];
 
   for (const step of steps) {
     const result = await runLookupStep(
       { query: company, step, kind: "company", shopUrl, html: input.html },
       ctx,
     );
+    stepResults.push(result);
     if (!result.ok) {
       continue;
     }
-    if (result.companies?.length) {
+    if (result.status === "OK" && result.companies?.length) {
       companies = result.companies;
       shopUrl = companies.find((c) => c.matched && c.shopUrl)?.shopUrl || shopUrl;
     }
-    if (result.shopRows?.length) shopRows = result.shopRows;
-    if (result.intel) intel = result.intel;
-    if (result.status === "ok" || result.companies?.length || result.shopRows?.length) {
+    if (result.status === "OK" && result.shopRows?.length) shopRows = result.shopRows;
+    if (result.status === "OK" && result.intel) intel = result.intel;
+    if (result.status === "OK") {
       evidence.push({
         id: nid("evi"),
         sourceKey: step === "intel" ? "intel" : step,
@@ -100,5 +102,12 @@ export async function researchCompany(input, ctx = {}) {
     recommendation: { action: "人工确认是否开发", reasoning: intel?.summary || "" },
   });
   if (!parsed.ok) return { ok: false, errors: parsed.errors };
-  return { ok: true, ...parsed.value };
+  return {
+    ok: true,
+    ...parsed.value,
+    steps: stepResults,
+    sourceRuntime: {
+      traces: stepResults.map((stepResult) => stepResult.sourceTrace).filter(Boolean),
+    },
+  };
 }

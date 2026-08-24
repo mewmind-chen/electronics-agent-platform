@@ -43,10 +43,10 @@ export async function researchPart(input, ctx = {}) {
     if (!result.ok) {
       continue;
     }
-    if (result.identity) identity = mergeIdentity(identity, result.identity);
-    if (result.alts?.length) alts.push(...result.alts);
-    if (result.offers?.length) offers.push(...result.offers);
-    if (result.status === "ok") {
+    if (result.status === "OK") {
+      if (result.identity) identity = mergeIdentity(identity, result.identity);
+      if (result.alts?.length) alts.push(...result.alts);
+      if (result.offers?.length) offers.push(...result.offers);
       evidence.push({
         id: nid("evi"),
         sourceKey: step === "intel" ? "intel" : step,
@@ -139,5 +139,11 @@ export async function researchPart(input, ctx = {}) {
     businessContext: business,
     advice,
     steps: stepResults,
+    sourceRuntime: {
+      traces: stepResults.map((stepResult) => stepResult.sourceTrace).filter(Boolean),
+      internalQuoteCount: Number(business.internalQuoteCount || 0),
+      internalQuoteCountMeaning:
+        "仅表示本次请求未注入 Radar/Workbench 内部询价上下文；不表示公开市场无报价或 Market Sources 未连接。",
+    },
   };
 }

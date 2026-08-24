@@ -21,6 +21,7 @@ import { createRuntime } from "./runtime.js";
 import { createResearchHandlers, listTaskRoutes, requestCtx } from "./research.js";
 import { createTaskStore } from "./task-store.js";
 import { ApiRequestError, createApiGuard, withRequestDeadline } from "./http-guard.js";
+import { sourceReadiness } from "@electronics/market-sources";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 mkdirSync(join(root, ".dsh-platform/sessions"), { recursive: true });
@@ -204,20 +205,24 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${HOST}:${PORT}`);
   apiGuard.track(req, res, url.pathname);
   if (req.method === "GET" && url.pathname === "/health") {
+    const agentReady = runtime.isAgentAvailable();
     json(res, 200, {
       ok: true,
       service: "electronics-agent-api",
+      platform: "ready",
       phase: 9.4,
       contractVersion: CONTRACT_VERSION,
       routes: listTaskRoutes(),
       agent: {
-        available: runtime.isAgentAvailable(),
+        ready: agentReady,
+        available: agentReady,
         modeDefault: "auto",
         policy: {
           provider: runtime.modelPolicy?.provider || "unresolved",
           model: runtime.modelPolicy?.model || "unresolved",
         },
       },
+      sources: sourceReadiness(),
     });
     return;
   }

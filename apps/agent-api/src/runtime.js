@@ -139,7 +139,7 @@ function partPrompt(input) {
     "Follow Goal, Tools, Steps, Evidence, Answer, Hard rules.",
     `The user said: ${JSON.stringify(input.message || `分析 ${input.mpn}`)}.`,
     `Call part_research with the exact MPN ${JSON.stringify(input.mpn)}.`,
-    "Do not truncate suffixes. Return the tool JSON unchanged. Never write a business database.",
+    "Do not truncate suffixes. Return the tool JSON unchanged. Never write a business database. Do not use generic web search or another intelligence stack after the tool; source gaps stay explicit. Only do separately labelled External Supplemental Research if the user explicitly asks.",
     `Request: ${JSON.stringify({ mpn: input.mpn, goal: input.goal, steps: input.steps })}`,
   ].join(" ");
 }
@@ -148,7 +148,7 @@ function companyPrompt(input) {
   return [
     "Load skill company.",
     `Call company_research with company ${JSON.stringify(input.company)}.`,
-    "Return the tool JSON unchanged. Never write a business database.",
+    "Return the tool JSON unchanged. Never write a business database. Do not use generic web search or another intelligence stack after the tool; source gaps stay explicit. Only do separately labelled External Supplemental Research if the user explicitly asks.",
     `Request: ${JSON.stringify({ company: input.company, goal: input.goal, steps: input.steps })}`,
   ].join(" ");
 }
