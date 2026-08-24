@@ -18,6 +18,7 @@ import {
   parseTaskCreateRequest,
   parseAgentRequest,
   parseAgentResponse,
+  parseBusinessContext,
   validateSkillSop,
   CONTRACT_VERSION,
 } from "./index.js";
@@ -253,4 +254,19 @@ test("agent request/response and part skill SOP are frozen", () => {
     intent: { kind: "part_research", skill: "part", mpn: "TPS54560DDAR" },
   });
   assert.equal(missing.ok, false);
+});
+
+test("business context keeps internal sources off the evidence list", () => {
+  const parsed = parseBusinessContext({
+    inventory: { source: "radar", onHand: 8000, inTransit: 0 },
+    quotation: { source: "workbench", openCount: 3 },
+    customer: { note: "reserved" },
+  });
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value.inventory.origin, "radar");
+  assert.equal(parsed.value.quotation.origin, "workbench");
+  assert.equal(parsed.value.customer.reserved, true);
+  assert.equal(parsed.value.internalQuoteCount, 3);
+  const sql = parseBusinessContext({ inventory: { onHand: 1, note: "INSERT into stock" } });
+  assert.equal(sql.ok, false);
 });

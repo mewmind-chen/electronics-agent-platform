@@ -63,7 +63,7 @@ export function composePartReport(raw, fallbackMpn = "") {
   lines.push(`封装：${identity?.package || "证据不足"}`);
   if (result.positioning) lines.push(`定位：${result.positioning}`);
   lines.push("");
-  lines.push("## 市场判断");
+  lines.push("## 公开市场判断");
   lines.push("");
   if (unknown) {
     lines.push("状态：未知");
@@ -95,16 +95,35 @@ export function composePartReport(raw, fallbackMpn = "") {
     lines.push(`依据：立创 1+ ${cards.price.lcscPrice ?? "未知"}，挂货最低 ${cards.price.minPrice ?? "未知"}${cite(idEvi)}`);
   }
   lines.push("");
-  lines.push("## 业务建议");
+  lines.push("## 内部业务判断");
   lines.push("");
-  if (unknown) {
+  const advice = result.advice || {};
+  const biz = result.businessContext || {};
+  if (!advice.usedInternal) {
+    lines.push("内部上下文：未注入。");
+    lines.push("说明：库存/询价须由 Radar 或 Workbench 在请求里传入，Agent 不读业务库。");
+  } else {
+    if (biz.inventory) {
+      lines.push(`库存上下文（${biz.inventory.origin}）：在手 ${biz.inventory.onHand ?? "未知"}，在途 ${biz.inventory.inTransit ?? "未知"}`);
+    }
+    if (biz.quotation) {
+      lines.push(`询价上下文（${biz.quotation.origin}）：未完成 ${biz.quotation.openCount ?? 0} 条`);
+    }
+    lines.push(`内部判断：${advice.internalView}`);
+    lines.push("注意：以上是 internal context，不是公开 evidenceId。");
+  }
+  lines.push("");
+  lines.push("## 综合建议");
+  lines.push("");
+  lines.push(advice.combined || result.recommendation?.action || (unknown ? "综合建议：先补市场证据。" : "综合建议：按公开市场谨慎报价。"));
+  if (unknown && !advice.usedInternal) {
     lines.push("是否值得开发：证据不足，暂不判断。");
     lines.push("目标客户：未知。");
     lines.push("风险提示：补齐身份与至少两个市场源后再报价。");
   } else {
-    lines.push(`是否值得开发：${result.recommendation?.action || "人工确认后报价"}`);
+    lines.push(`是否值得开发：${result.recommendation?.action || advice.action || "人工确认后报价"}`);
     lines.push(`目标客户：${dossier.customers || dossier.extra?.customers || "见应用场景，需业务确认"}`);
-    lines.push(`风险提示：${dossier.extra?.notes?.[0] || result.recommendation?.reasoning || "核对完整后缀与封装。"}`);
+    lines.push(`风险提示：${dossier.extra?.notes?.[0] || "核对完整后缀与封装。内部数字不得写成公开证据。"}`);
   }
   lines.push("");
   lines.push("Agent 不写库存、询价或研究报告库。正式落库由业务系统确认。");

@@ -52,6 +52,17 @@ export {
 } from "./task.js";
 
 export {
+  CONTEXT_KINDS,
+  CONTEXT_ORIGINS,
+  CONTEXT_RULES,
+  isInternalContextItem,
+  parseBusinessContext,
+  parseCustomerContext,
+  parseInventoryContext,
+  parseQuotationContext,
+} from "./context.js";
+
+export {
   AGENT_INTENTS,
   AGENT_SKILLS,
   AGENT_TOOLS,

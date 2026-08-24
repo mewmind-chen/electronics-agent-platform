@@ -53,7 +53,7 @@ test("composer only cites existing claims and keeps MPN", () => {
   assert.deepEqual(report.claimsCited, ["evi-1"]);
   assert.match(report.markdown, /evi-1/);
   assert.match(report.markdown, /# 型号分析报告/);
-  assert.match(report.markdown, /## 业务建议/);
+  assert.match(report.markdown, /## 综合建议/);
 });
 
 test("composer accepts a thin unknown harness payload", () => {

@@ -108,7 +108,7 @@ test("composer report template has required business sections", () => {
     },
     positioning: "ST 的MCU · LQFP-48",
   });
-  for (const h of ["# 型号分析报告", "## 基础信息", "## 市场判断", "## 供应情况", "## 价格趋势", "## 业务建议"]) {
+  for (const h of ["# 型号分析报告", "## 基础信息", "## 公开市场判断", "## 供应情况", "## 价格趋势", "## 内部业务判断", "## 综合建议"]) {
     assert.match(report.markdown, new RegExp(h));
   }
   assert.match(report.markdown, /evi-l/);

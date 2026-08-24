@@ -3,7 +3,7 @@
  * These types must stay free of @deepseek-ai / Harness imports.
  */
 
-export const CONTRACT_VERSION = "0.3.0";
+export const CONTRACT_VERSION = "0.3.1";
 export const EXECUTION_MODES = Object.freeze(["auto", "agent", "core"]);
 export const MODEL_MODES = Object.freeze(["auto", "selected", "fixed"]);
 export const MODEL_QUALITIES = Object.freeze(["economy", "standard", "quality"]);

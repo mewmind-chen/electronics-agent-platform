@@ -4,12 +4,17 @@
  */
 
 export function requestCtx(req, extra = {}) {
+  const context = extra.context && typeof extra.context === "object" ? extra.context : {};
   return {
     firecrawlKey: extra.firecrawlKey || req.headers["x-firecrawl-key"] || process.env.FIRECRAWL_API_KEY || "",
     anysearchKey: extra.anysearchKey || process.env.ANYSEARCH_API_KEY || "",
     icnetCookie: extra.icnetCookie || process.env.ICNET_COOKIE || "",
-    internalQuoteCount: extra.internalQuoteCount ?? 0,
-    snapshots: extra.snapshots ?? [],
+    inventory: context.inventory || extra.inventory,
+    quotation: context.quotation || extra.quotation,
+    customer: context.customer || extra.customer,
+    internalQuoteCount: extra.internalQuoteCount ?? context.quotation?.openCount ?? 0,
+    snapshots: extra.snapshots ?? context.snapshots ?? [],
+    previousLcscPrice: extra.previousLcscPrice ?? context.previousLcscPrice ?? null,
   };
 }
 

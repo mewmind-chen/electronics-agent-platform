@@ -5,6 +5,7 @@
 import { parsePartResearchRequest, parsePartResearchResult } from "@electronics/contracts";
 import { runLookupStep } from "@electronics/market-sources";
 import { analyzePart, buildMarketCards, partPositioning } from "./analyze.js";
+import { adviseFromContext, resolveBusinessContext } from "./context.js";
 import { buildDossier, computeMarketAnalysis, extraKnowledge } from "./knowledge.js";
 
 function nid(prefix) {
@@ -27,6 +28,9 @@ export async function researchPart(input, ctx = {}) {
   const req = parsePartResearchRequest(input);
   if (!req.ok) return { ok: false, errors: req.errors };
   const { mpn, steps, goal, holderQty, cost } = req.value;
+  const biz = resolveBusinessContext(input, ctx);
+  if (!biz.ok) return { ok: false, errors: biz.errors };
+  const business = biz.value;
   const evidence = [];
   const offers = [];
   let identity = null;
@@ -61,14 +65,14 @@ export async function researchPart(input, ctx = {}) {
   const analysis = computeMarketAnalysis({
     mpn,
     currentOffers: offers,
-    internalQuoteCount: Number(ctx.internalQuoteCount || 0),
-    snapshots: ctx.snapshots || [],
+    internalQuoteCount: Number(business.internalQuoteCount || 0),
+    snapshots: business.snapshots || [],
   });
   const cards = buildMarketCards({
     analysis: supply,
     identity,
-    internalQuoteCount: Number(ctx.internalQuoteCount || 0),
-    previousLcscPrice: ctx.previousLcscPrice ?? null,
+    internalQuoteCount: Number(business.internalQuoteCount || 0),
+    previousLcscPrice: business.previousLcscPrice ?? null,
   });
   const positioning = partPositioning(identity);
 
@@ -103,6 +107,7 @@ export async function researchPart(input, ctx = {}) {
     /* single source cannot promote a strong market call */
   }
   const finalState = !firstEvidence || (!crossOk && state !== "未知" && !identity) ? "未知" : state;
+  const advice = adviseFromContext(business, finalState);
 
   const parsed = parsePartResearchResult({
     mpn,
@@ -116,8 +121,8 @@ export async function researchPart(input, ctx = {}) {
       claims: finalState === "未知" ? [] : claims,
     },
     recommendation: {
-      action: finalState === "未知" ? "补数据后再判断是否开发" : cards.supply.level === "high" ? "谨慎备货，先核交期" : "人工确认后报价",
-      reasoning: dossier.headline || positioning || goal || "",
+      action: advice.action,
+      reasoning: [advice.combined, dossier.headline || positioning || goal || ""].filter(Boolean).join(" "),
       holderQty,
       cost,
     },
@@ -131,6 +136,8 @@ export async function researchPart(input, ctx = {}) {
     supply,
     cards,
     positioning,
+    businessContext: business,
+    advice,
     steps: stepResults,
   };
 }
