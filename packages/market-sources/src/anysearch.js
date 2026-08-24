@@ -5,6 +5,11 @@ export function resolveAnysearchKey(ctx = {}) {
   return String(ctx.anysearchKey || process.env.ANYSEARCH_API_KEY || "").trim();
 }
 
+function requestSignal(ctx, fallbackMs) {
+  const timeout = AbortSignal.timeout(ctx.timeoutMs ?? fallbackMs);
+  return ctx.signal ? AbortSignal.any([ctx.signal, timeout]) : timeout;
+}
+
 export async function fetchIntelBrief(query, kind = "part", ctx = {}) {
   const key = resolveAnysearchKey(ctx);
   if (!key) {
@@ -24,7 +29,7 @@ export async function fetchIntelBrief(query, kind = "part", ctx = {}) {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify(item),
-    signal: AbortSignal.timeout(ctx.timeoutMs ?? 20_000),
+    signal: requestSignal(ctx, 20_000),
   });
   if (!res.ok) throw new Error(`公开资料失败（${res.status}）`);
   const json = await res.json();

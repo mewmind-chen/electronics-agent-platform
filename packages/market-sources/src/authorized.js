@@ -10,6 +10,11 @@ export function resolveDigikeyKey(ctx = {}) {
   return String(ctx.digikeyKey || process.env.DIGIKEY_API_KEY || "").trim();
 }
 
+function requestSignal(ctx, fallbackMs) {
+  const timeout = AbortSignal.timeout(ctx.timeoutMs ?? fallbackMs);
+  return ctx.signal ? AbortSignal.any([ctx.signal, timeout]) : timeout;
+}
+
 export async function fetchMouserOffers(mpn, ctx = {}) {
   const key = resolveMouserKey(ctx);
   if (!key) {
@@ -25,7 +30,7 @@ export async function fetchMouserOffers(mpn, ctx = {}) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ SearchByKeywordRequest: { keyword: mpn, records: 20, startingRecord: 0 } }),
-      signal: AbortSignal.timeout(ctx.timeoutMs ?? 20_000),
+      signal: requestSignal(ctx, 20_000),
     },
   );
   if (!res.ok) return { status: "error", detail: `Mouser API ${res.status}` };

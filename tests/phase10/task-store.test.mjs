@@ -18,7 +18,13 @@ test("TaskStore persists task state/events, deduplicates safely, and excludes re
     });
     assert.equal(created.created, true);
     first.appendEvent("task-one", { phase: "tool_call", name: "part_research", payload: { context: "must-not-persist" } });
-    first.complete("task-one", { ok: true, businessContext: { inventory: { onHand: 2 } }, advice: { internalView: "2" } });
+    first.complete("task-one", {
+      ok: true,
+      businessContext: { inventory: { onHand: 2 } },
+      advice: { internalView: "2" },
+      recommendation: { reasoning: "internal stock is 2" },
+      identity: { sourceKey: "lcsc", apiKey: "must-not-persist" },
+    });
     first.close();
 
     const restarted = createTaskStore({ path, ttlMs: 1_000 });
@@ -26,6 +32,8 @@ test("TaskStore persists task state/events, deduplicates safely, and excludes re
     assert.equal(task.status, "done");
     assert.equal(task.result.ok, true);
     assert.equal(JSON.stringify(task).includes("businessContext"), false);
+    assert.equal(JSON.stringify(task).includes("recommendation"), false);
+    assert.equal(JSON.stringify(task).includes("must-not-persist"), false);
     assert.equal(JSON.stringify(restarted.listEvents("task-one")).includes("must-not-persist"), false);
     assert.equal(restarted.create({ taskId: "other", type: "part_research", requestHash: "hash-one", idempotencyKey: "idem-one" }).created, false);
     assert.equal(restarted.create({ taskId: "other", type: "part_research", requestHash: "different", idempotencyKey: "idem-one" }).conflict, true);
@@ -62,12 +70,19 @@ test("TaskStore publishes safe live events and recovers interrupted work", () =>
     first.appendEvent("task-running", {
       phase: "observation",
       name: "live",
-      payload: { context: { inventory: { onHand: 4 } }, ok: true },
+      payload: {
+        context: { inventory: { onHand: 4 } },
+        ok: true,
+        error: "upstream response contained request-key",
+        apiKey: "must-not-persist",
+      },
     });
     unsubscribe();
     assert.equal(received.length, 1);
     assert.equal(received[0].payload.ok, true);
     assert.equal(JSON.stringify(received).includes("inventory"), false);
+    assert.equal(JSON.stringify(received).includes("request-key"), false);
+    assert.equal(JSON.stringify(received).includes("must-not-persist"), false);
     first.close();
 
     const restarted = createTaskStore({ path });

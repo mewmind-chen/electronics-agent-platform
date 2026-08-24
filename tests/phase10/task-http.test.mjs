@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createTaskStore } from "../../apps/agent-api/src/task-store.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -103,6 +104,47 @@ test("tasks are idempotent, survive restart, and replay SSE from Last-Event-ID",
     assert.equal(afterRestart.body.status, "done");
     const eventsAfterRestart = await call(secondUrl, `/v1/tasks/${taskId}/events`, { token });
     assert.equal(eventsAfterRestart.body.events.at(-1).id, lastId);
+  } finally {
+    child.kill("SIGTERM");
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("SSE polls SQLite so events written by another process are delivered", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "electronics-task-cross-process-"));
+  const token = "cross-process-token";
+  const storePath = join(dir, "tasks.sqlite");
+  const port = 18813;
+  const writer = createTaskStore({ path: storePath });
+  writer.create({ taskId: "task-cross-process", type: "part_research", requestHash: "cross-process" });
+  writer.close();
+  const child = start(port, token, storePath);
+  try {
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitHealth(baseUrl);
+    const response = await fetch(`${baseUrl}/v1/tasks/task-cross-process/events`, {
+      headers: { authorization: `Bearer ${token}`, accept: "text/event-stream" },
+      signal: AbortSignal.timeout(5_000),
+    });
+    assert.equal(response.status, 200);
+
+    const external = createTaskStore({ path: storePath });
+    const event = external.appendEvent("task-cross-process", {
+      phase: "observation",
+      name: "external_writer",
+      payload: { ok: true },
+    });
+    external.complete("task-cross-process", { ok: true, mpn: "NE555P" });
+    external.appendEvent("task-cross-process", {
+      phase: "decision",
+      name: "external_done",
+      payload: { ok: true },
+    });
+    external.close();
+
+    const body = await response.text();
+    assert.match(body, new RegExp(`id: ${event.id}`));
+    assert.match(body, /external_done/);
   } finally {
     child.kill("SIGTERM");
     rmSync(dir, { recursive: true, force: true });

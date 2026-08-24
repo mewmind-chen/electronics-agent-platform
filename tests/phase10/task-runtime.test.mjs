@@ -79,3 +79,48 @@ test("deadline aborts the request and records a failed timeout without context",
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("task concurrency and queue capacity are bounded", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "electronics-task-capacity-"));
+  try {
+    let active = 0;
+    let maxActive = 0;
+    const resolvers = [];
+    const runtime = {
+      runPartResearch() {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        return new Promise((resolve) => resolvers.push(() => {
+          active -= 1;
+          resolve({ ok: true, mpn: "NE555P", viaHarness: false });
+        }));
+      },
+      runCompanyResearch() {
+        throw new Error("not used");
+      },
+    };
+    const store = createTaskStore({ path: join(dir, "tasks.sqlite") });
+    const handlers = createResearchHandlers(runtime, { store, deadlineMs: 1_000, maxConcurrent: 1, maxQueued: 1 });
+    assert.equal(task(handlers, "task-cap-1").created, true);
+    assert.equal(task(handlers, "task-cap-2").created, true);
+    assert.equal(task(handlers, "task-cap-3").overloaded, true);
+    const first = handlers.runTask("task-cap-1", { headers: {} });
+    const second = handlers.runTask("task-cap-2", { headers: {} });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(active, 1);
+    resolvers.shift()();
+    await first;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(active, 1);
+    assert.equal(maxActive, 1);
+    resolvers.shift()();
+    await second;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(store.get("task-cap-1").status, "done");
+    assert.equal(store.get("task-cap-2").status, "done");
+    await handlers.shutdown();
+    store.close();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

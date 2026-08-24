@@ -8,6 +8,11 @@ export function resolveFirecrawlKey(ctx = {}) {
   return String(process.env.FIRECRAWL_API_KEY || process.env.FC_API_KEY || "").trim();
 }
 
+function requestSignal(ctx, fallbackMs) {
+  const timeout = AbortSignal.timeout(ctx.timeoutMs ?? fallbackMs);
+  return ctx.signal ? AbortSignal.any([ctx.signal, timeout]) : timeout;
+}
+
 export async function scrapeMarkdown(url, ctx = {}) {
   const key = resolveFirecrawlKey(ctx);
   if (!key) throw new Error("firecrawl key missing (pass ctx.firecrawlKey)");
@@ -25,7 +30,7 @@ export async function scrapeMarkdown(url, ctx = {}) {
       onlyMainContent: true,
       waitFor,
     }),
-    signal: AbortSignal.timeout(ctx.timeoutMs ?? 60_000),
+    signal: requestSignal(ctx, 60_000),
   });
   if (!res.ok) throw new Error(`抓取失败（${res.status}）`);
   const body = await res.json();

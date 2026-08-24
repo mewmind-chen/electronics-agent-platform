@@ -21,6 +21,9 @@ jobs:
       # pinned CLI explicitly before executing that invariant.
       - name: Install pinned official Harness CLI in isolation
         run: |
-          npm install --prefix "$RUNNER_TEMP/dsh-cli" --ignore-scripts @deepseek-ai/dsh@0.1.0-rc.6
+          # The published rc.6 meta-package has a very large cyclic peer graph;
+          # npm's modern peer resolver can spend the whole job resolving it.
+          # The official package itself is still pinned and fully installed.
+          npm install --prefix "$RUNNER_TEMP/dsh-cli" --ignore-scripts --legacy-peer-deps @deepseek-ai/dsh@0.1.0-rc.6
           echo "$RUNNER_TEMP/dsh-cli/node_modules/.bin" >> "$GITHUB_PATH"
       - run: npm test

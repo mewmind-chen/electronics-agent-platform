@@ -31,14 +31,40 @@ service never reconstruct that context from Platform storage.
   Runtime closes the request's own `DeepSeekHarness` instance; no shared
   Harness process or business database connection exists.
 - The provided deployment is intentionally single-writer. On startup, any
-  queued/running rows left by a stopped instance become retryable
+  queued/running rows whose heartbeat is stale become retryable
   `service_restarted` failures instead of remaining permanently in progress.
+  Active task heartbeats prevent a second reader from killing healthy work.
   The Compose named volume keeps task metadata across container replacement.
+
+## Production resource boundaries and observability
+
+- `AGENT_MAX_BODY_BYTES` bounds streamed JSON before parsing (default 12 MiB),
+  returning `413 payload_too_large` without invoking Runtime.
+- `AGENT_RATE_LIMIT_PER_MINUTE` and `AGENT_RATE_WINDOW_MS` bound authenticated
+  calls by a one-way token/IP fingerprint. Raw credentials are never logged.
+- `AGENT_REQUEST_DEADLINE_MS` bounds synchronous Import, Chat, Part, Company
+  and Hello calls. Request abort signals reach Harness and HTTP connectors.
+- `TASK_MAX_CONCURRENT`, `TASK_MAX_QUEUED` and `SSE_MAX_CONNECTIONS` protect
+  Harness processes, the local queue and streaming connections. Cursor replay
+  is capped at 500 events, and slow SSE clients use Node backpressure.
+- Every response carries a safe `X-Request-ID`; logs contain only request id,
+  method, path, status and duration. Authenticated `GET /metrics` exposes
+  request counters, deadlines, task status/capacity and Runtime start counts.
+- SIGTERM/SIGINT stops acceptance, fails queued work as retryable, aborts active
+  request-owned Harness instances, waits for the configured grace period, then
+  closes HTTP connections and SQLite.
+
+SQLite is the durable single-writer baseline. Cross-process SSE readers poll
+the database as well as using same-process notifications, and idempotent create
+uses the database unique constraint as the race arbiter. Horizontal task
+workers remain a later Postgres/queue deployment option, not an implicit
+property of this Compose file.
 
 ## Verification
 
 `tests/phase10/task-store.test.mjs`, `task-runtime.test.mjs`, and
 `task-http.test.mjs` cover SQLite restart durability, TTL cleanup, idempotency,
-JSON/SSE replay, cancellation, deadline aborts and context redaction. Node 22
+JSON/SSE replay (including an external SQLite writer), cancellation, deadline
+aborts, capacity, HTTP limits, metrics and context redaction. Node 22
 currently prints the expected experimental `node:sqlite` warning during these
 tests.

@@ -292,14 +292,14 @@ export function createRuntime(overrides = {}) {
     },
     resolveAgentRuntime: () => agentRuntime,
 
-    async ping(token) {
-      const out = await tryAgent({ kind: "hello", token }, "agent");
+    async ping(token, ctx = {}) {
+      const out = await tryAgent({ kind: "hello", token, signal: ctx.signal }, "agent");
       if (out.error === AGENT_UNAVAILABLE) throw new Error(AGENT_UNAVAILABLE);
       if (!out || out.ok !== true) throw new Error("official runtime returned no hello_ping result");
       return out;
     },
 
-    async runImport(input) {
+    async runImport(input, ctx = {}) {
       const mode = resolveExecutionMode(input);
       const core = await extractImport(input);
       if (!core.ok) return { ...core, mode, viaHarness: false, usedAi: false, route: "core" };
@@ -310,7 +310,7 @@ export function createRuntime(overrides = {}) {
       }
 
       if (core.reason === "vision_required" || input.sourceType === "image" || String(input.mime || "").startsWith("image/")) {
-        const vision = await tryAgent({ kind: "import", input: { ...input, role: "vision" } }, mode);
+        const vision = await tryAgent({ kind: "import", input: { ...input, role: "vision" }, signal: ctx.signal }, mode);
         if (vision.error === AGENT_UNAVAILABLE) {
           return {
             ok: false,
@@ -324,7 +324,7 @@ export function createRuntime(overrides = {}) {
           };
         }
       }
-      const agent = await tryAgent({ kind: "import", input }, mode);
+      const agent = await tryAgent({ kind: "import", input, signal: ctx.signal }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
         return {
@@ -350,7 +350,7 @@ export function createRuntime(overrides = {}) {
       };
       const escalate = nextEscalationRole("import", out, out.modelRoute?.role || "fast");
       if (escalate && mode !== "core") {
-        const again = await tryAgent({ kind: "import", input: { ...input, role: escalate } }, mode);
+        const again = await tryAgent({ kind: "import", input: { ...input, role: escalate }, signal: ctx.signal }, mode);
         if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
           out = {
             ...out,

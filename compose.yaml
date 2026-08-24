@@ -12,12 +12,22 @@ services:
       TASK_STORE_PATH: /app/.dsh-platform/tasks.sqlite
       TASK_TTL_MS: ${TASK_TTL_MS:-604800000}
       TASK_DEADLINE_MS: ${TASK_DEADLINE_MS:-120000}
+      AGENT_REQUEST_DEADLINE_MS: ${AGENT_REQUEST_DEADLINE_MS:-120000}
+      AGENT_MAX_BODY_BYTES: ${AGENT_MAX_BODY_BYTES:-12582912}
+      AGENT_RATE_LIMIT_PER_MINUTE: ${AGENT_RATE_LIMIT_PER_MINUTE:-120}
+      AGENT_RATE_WINDOW_MS: ${AGENT_RATE_WINDOW_MS:-60000}
+      TASK_MAX_CONCURRENT: ${TASK_MAX_CONCURRENT:-4}
+      TASK_MAX_QUEUED: ${TASK_MAX_QUEUED:-20}
+      TASK_STALE_MS: ${TASK_STALE_MS:-30000}
+      SSE_MAX_CONNECTIONS: ${SSE_MAX_CONNECTIONS:-100}
+      AGENT_SHUTDOWN_GRACE_MS: ${AGENT_SHUTDOWN_GRACE_MS:-10000}
     ports:
       - "${AGENT_API_BIND_ADDRESS:-127.0.0.1}:8787:8787"
     security_opt:
       - no-new-privileges:true
     volumes:
       - agent_state:/app/.dsh-platform
+    stop_grace_period: 15s
     restart: unless-stopped
 
 volumes:

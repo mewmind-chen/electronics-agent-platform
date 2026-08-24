@@ -47,6 +47,20 @@ test("concurrent scrapes do not share keys", async () => {
   assert.deepEqual(seen.sort(), ["Bearer key-A", "Bearer key-B"].sort());
 });
 
+test("caller abort signal reaches outbound connectors", async () => {
+  const controller = new AbortController();
+  const fakeFetch = (_url, init) => new Promise((_, reject) => {
+    init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+  });
+  const pending = scrapeMarkdown("https://example.com/slow", {
+    firecrawlKey: "request-key",
+    fetch: fakeFetch,
+    signal: controller.signal,
+  });
+  controller.abort(new Error("caller_cancelled"));
+  await assert.rejects(pending, /caller_cancelled/);
+});
+
 test("missing firecrawl key fails that request only", async () => {
   const r = await runLookupStep({ query: "NE555P", step: "hqew" }, {});
   assert.equal(r.ok, false);
