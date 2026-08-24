@@ -14,10 +14,14 @@ COPY . .
 # npm's advisory service treats URL-installed packages as an unconstrained
 # version and falsely reports the fixed SheetJS 0.20.3 tarball. The release is
 # pinned and exercised by tests/phase10/security-dependencies.test.mjs.
-RUN npm install --ignore-scripts --audit=false \
-  && npm install --no-save --ignore-scripts --audit=false @deepseek-ai/dsh-tools@0.1.1-rc.2 \
+RUN apk add --no-cache --virtual .native-build-deps python3 make g++ \
+  && npm install --include=optional --audit=false \
+  && npm install --include=optional --no-save --audit=false @deepseek-ai/dsh-tools@0.1.1-rc.2 \
+  && npm ci --prefix runtime --include=optional --audit=false \
+  && npm rebuild --prefix runtime node-pty --build-from-source \
   && mkdir -p /app/.dsh-platform \
   && npm cache clean --force \
+  && apk del .native-build-deps \
   && chown -R node:node /app
 
 USER node

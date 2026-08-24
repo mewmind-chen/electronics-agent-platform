@@ -97,8 +97,9 @@ requires `AGENT_API_TOKEN`.
 
 ```bash
 cp .env.example .env
-# Set AGENT_API_TOKEN to a long random value. Optionally set a runtime-only
-# DEEPSEEK_API_KEY in your deployment secret store.
+# Set AGENT_API_TOKEN to a long random value. Set the runtime-only
+# DEEPSEEK_API_KEY and OPENCODE_GO_API_KEY values in your deployment secret
+# store when the qualified Harness routes are enabled.
 docker compose up --build -d
 node scripts/deployment-smoke.mjs --url http://127.0.0.1:8787 --token "$AGENT_API_TOKEN"
 ```

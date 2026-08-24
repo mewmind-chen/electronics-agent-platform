@@ -10,6 +10,13 @@ npm-debug.log
 .credentials.yaml
 .dsh-platform
 package-lock.json
+!runtime/package-lock.json
 coverage
-tests
+# Keep the sanitized, versioned production qualification matrix available to
+# Model Policy at runtime. Everything else under tests remains outside the
+# image context.
+tests/*
+!tests/phase82/
+tests/phase82/*
+!tests/phase82/live-results.json
 docs

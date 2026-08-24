@@ -36,9 +36,16 @@ test("deployment files require runtime auth, bind the container safely, and excl
   assert.match(dockerfile, /USER node/);
   assert.match(dockerfile, /scripts\/start-container\.mjs/);
   assert.match(dockerfile, /HEALTHCHECK/);
+  assert.match(dockerfile, /apk add --no-cache --virtual \.native-build-deps/);
+  assert.match(dockerfile, /npm install --include=optional/);
+  assert.match(dockerfile, /npm ci --prefix runtime --include=optional/);
+  assert.match(dockerfile, /npm rebuild --prefix runtime node-pty --build-from-source/);
   for (const ignored of [".env", ".credentials.yaml", ".dsh-platform", "node_modules"]) {
     assert.match(ignore, new RegExp(`^${ignored.replace(".", "\\.")}$`, "m"));
   }
+  assert.match(ignore, /!tests\/phase82\/live-results\.json/);
+  assert.match(ignore, /!runtime\/package-lock\.json/);
+  assert.doesNotMatch(ignore, /^tests$/m);
   assert.match(compose, /AGENT_API_TOKEN: \$\{AGENT_API_TOKEN:\?/);
   assert.match(compose, /AGENT_API_HOST: 0\.0\.0\.0/);
   assert.match(compose, /no-new-privileges:true/);
@@ -48,6 +55,8 @@ test("deployment files require runtime auth, bind the container safely, and excl
   assert.doesNotMatch(workflow, /cache:\s*npm/);
   assert.match(runtime, /mode:\s*read-only/);
   assert.doesNotMatch(runtime, /mode:\s*danger-full-access/);
+  assert.match(runtime, /- id: authorization/);
+  assert.match(runtime, /apiKeyEnv: OPENCODE_GO_API_KEY/);
 });
 
 test("container startup refuses a missing token", () => {

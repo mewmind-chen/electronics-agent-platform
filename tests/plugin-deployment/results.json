@@ -1,0 +1,33 @@
+{
+  "runDate": "2026-08-25",
+  "baseline": {
+    "platform": "40c7eb215e9999261f7a0b8f3f4f7e65dfb3c60b",
+    "radar": "6b806f5496b0fafa043da84ca738692d470cbd69",
+    "workbench": "1f2c79b848d650467e1e93e11b993d0189711c4c"
+  },
+  "package": {
+    "name": "electronics-agent",
+    "version": "0.1.0",
+    "sha256": "318ea52dd29eaf52912e00f0ffd3996ef37515e05b7045925436af01c5c1aad9",
+    "desktopProfileInstalled": true,
+    "dumpConfigRegistered": true
+  },
+  "platform": {
+    "tests": {"passed": 160, "failed": 0},
+    "imageBuild": true,
+    "nativeModules": {"sharp": true, "koffi": true, "nodePty": true},
+    "restartHealth": true,
+    "postRestartPart": {"status": 200, "ok": true, "route": "harness", "viaHarness": true}
+  },
+  "scenarios": {
+    "part": {"status": 200, "ok": true, "mpn": "TPS54560DDAR", "renderedBusinessReport": true},
+    "company": {"status": 200, "ok": true, "company": "TI", "evidenceBounded": true},
+    "textImport": {"status": 200, "candidateCount": 1, "writes": false},
+    "imageImport": {"status": 422, "error": "vision_unavailable", "candidateCount": 0, "fabricated": false}
+  },
+  "repoGates": {
+    "radar": {"tests": "232/232", "typecheck": true, "buildDev": true},
+    "workbench": {"tests": "38/38", "typecheck": true, "build": true}
+  },
+  "release": {"status": "blocked", "reason": "fresh Desktop P2 Company GUI evidence still required", "v1TagCreated": false}
+}

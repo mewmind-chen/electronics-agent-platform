@@ -42,8 +42,21 @@
 - id: settings
   name: '@deepseek-ai/dsh-settings-file'
 
+# The pi-ai adapter registers authorization flows during boot. The desktop
+# profile provides this capability implicitly; the standalone container must
+# declare it explicitly so configured production routes are registered.
+- id: authorization
+  name: '@deepseek-ai/dsh-authorization'
+
 - id: llm-pi-ai
   name: '@deepseek-ai/dsh-llm-pi-ai'
+  # The desktop Harness normally supplies this route from settings.yaml. A
+  # container has no host profile, so keep the production route declaration in
+  # the composition and resolve its secret only from the launching environment.
+  config:
+    providers:
+      opencode-go:
+        apiKeyEnv: OPENCODE_GO_API_KEY
 
 
 - id: sandbox
