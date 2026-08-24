@@ -1,0 +1,23 @@
+[
+  { "bucket": "A-hot", "mpn": "STM32F103C8T6", "expectUnknownIfThin": true },
+  { "bucket": "A-hot", "mpn": "STM32F103CBT6", "expectUnknownIfThin": true },
+  { "bucket": "A-hot", "mpn": "ESP32-WROOM-32E", "expectUnknownIfThin": true },
+  { "bucket": "A-hot", "mpn": "NRF52840-QIAA", "expectUnknownIfThin": true },
+  { "bucket": "B-industrial", "mpn": "TPS54560DDAR", "expectUnknownIfThin": true },
+  { "bucket": "B-industrial", "mpn": "LM317T", "expectUnknownIfThin": true },
+  { "bucket": "B-industrial", "mpn": "NE555P", "expectUnknownIfThin": true },
+  { "bucket": "B-industrial", "mpn": "AMS1117-3.3", "expectUnknownIfThin": true },
+  { "bucket": "B-industrial", "mpn": "SN74LVC245APWR", "expectUnknownIfThin": true },
+  { "bucket": "C-cold", "mpn": "AT24C256C-SSHL-T", "expectUnknownIfThin": true },
+  { "bucket": "C-cold", "mpn": "USB2514B-AEZC", "expectUnknownIfThin": true },
+  { "bucket": "C-cold", "mpn": "W25Q64JVSSIQ", "expectUnknownIfThin": true },
+  { "bucket": "D-risk", "mpn": "STM32F103C6T6", "expectUnknownIfThin": true },
+  { "bucket": "D-risk", "mpn": "ATMEGA8-16PU", "expectUnknownIfThin": true },
+  { "bucket": "D-risk", "mpn": "TL494CN", "expectUnknownIfThin": true },
+  { "bucket": "E-bogus", "mpn": "NOTAREALPART999", "bogus": true },
+  { "bucket": "E-bogus", "mpn": "XXXX0INVALID", "bogus": true },
+  { "bucket": "E-bogus", "mpn": "FAKECHIP42ABC", "bogus": true },
+  { "bucket": "F-multi", "mpn": "STM32F407VGT6", "expectUnknownIfThin": true },
+  { "bucket": "F-multi", "mpn": "TPS54331DDAR", "expectUnknownIfThin": true },
+  { "bucket": "F-multi", "mpn": "LM2596S-5.0", "expectUnknownIfThin": true }
+]

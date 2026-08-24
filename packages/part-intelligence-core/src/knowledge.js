@@ -5,6 +5,8 @@ const CATALOG = [
     knowledge: {
       family: "STM32F1 主流增强型",
       what: "ST 入门工控 MCU，C8 为 64KB Flash。",
+      use: "电机 PWM、USB 从机、小型 PLC 外围。",
+      customers: "电控厂、工控方案商。",
       notes: ["先对 C8/CB 和 T6/T7，不要只听 F103。"],
       related: ["STM32F103CBT6", "APM32F103C8T6"],
     },
@@ -14,6 +16,8 @@ const CATALOG = [
     knowledge: {
       family: "STM32F1 主流增强型",
       what: "F103 的 128KB Flash 档，不能用 C8 顶。",
+      use: "比 C8 更吃 Flash 的工控、USB、CAN 方案。",
+      customers: "工控方案、需要 128K 的改板客户。",
       notes: ["和 C8T6 不是同一颗料。"],
       related: ["STM32F103C8T6"],
     },
@@ -23,19 +27,30 @@ const CATALOG = [
     knowledge: {
       family: "STM32F1",
       what: "ST 最常见 F1 家族。报价前对完整型号。",
+      use: "工控、电机、USB、CAN。",
+      customers: "电控、工控方案。",
       notes: ["不要只听 F103。"],
       related: [],
     },
   },
   {
     test: /^STM32F4/i,
-    knowledge: { family: "STM32F4", what: "Cortex-M4F 高性能线。", notes: ["不要用 F1 的价套 F4。"], related: [] },
+    knowledge: {
+      family: "STM32F4",
+      what: "Cortex-M4F 高性能线。",
+      use: "需要浮点/更高主频的工控、逆变。",
+      customers: "电力电子、高端工控。",
+      notes: ["不要用 F1 的价套 F4。"],
+      related: [],
+    },
   },
   {
     test: /^ESP32/i,
     knowledge: {
       family: "乐鑫 Wi-Fi / 蓝牙",
       what: "WROOM / WROVER / C3 / S3 不是同一颗。",
+      use: "物联网、网关、无线控制。",
+      customers: "物联网方案、家电、网关厂。",
       notes: ["问清 Flash、天线和封装。"],
       related: [],
     },
@@ -45,6 +60,8 @@ const CATALOG = [
     knowledge: {
       family: "华邦 SPI NOR Flash",
       what: "容量看数字：64=64Mbit。",
+      use: "MCU 外挂程序/参数存储。",
+      customers: "方案商、消费电子、工控。",
       notes: ["对容量、电压和封装。"],
       related: [],
     },
@@ -65,6 +82,8 @@ export function buildDossier(identity, alts = [], intel = null) {
   return {
     extra,
     headline: extra?.what || identity?.summary || intel?.summary || identity?.category || identity?.mpn,
+    use: extra?.use || "",
+    customers: extra?.customers || "",
     specs: identity?.specs || [],
     apps: identity?.applications || [],
     replacements,
