@@ -19,6 +19,12 @@ minimal `context` document into the stable Agent API. The platform never calls
 back into either business database, and internal context never becomes public
 Evidence.
 
+The durable architecture guardrails and original acceptance ledger live in
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). Its north
+star is to move volatile, non-enumerable business understanding behind
+replaceable capabilities while keeping facts, constraints, writes and final
+decisions in the business systems and human hands.
+
 ## Phase 1 scope
 
 Prove the official DeepSeek Harness path:

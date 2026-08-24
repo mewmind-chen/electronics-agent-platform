@@ -7,7 +7,15 @@ import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONTRACT_VERSION } from "@electronics/contracts";
+import {
+  CONTRACT_VERSION,
+  parseAgentRequest,
+  parseBusinessContext,
+  parseCompanyResearchRequest,
+  parseImportRequest,
+  parsePartResearchRequest,
+  parseTaskCreateRequest,
+} from "@electronics/contracts";
 import { createRuntime } from "./runtime.js";
 import { createResearchHandlers, listTaskRoutes, requestCtx } from "./research.js";
 
@@ -34,6 +42,39 @@ function authorized(req) {
   if (!TOKEN) return true;
   const got = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
   return got === TOKEN;
+}
+
+function contractError(res, errors) {
+  json(res, 422, { ok: false, error: "contract_error", errors });
+}
+
+function parseResearchRequest(body, type) {
+  const request = type === "company_research" ? parseCompanyResearchRequest(body) : parsePartResearchRequest(body);
+  if (!request.ok) return request;
+  const context = parseBusinessContext(body.context);
+  if (!context.ok) return context;
+  return {
+    ok: true,
+    value: {
+      ...body,
+      ...request.value,
+      context: context.value,
+    },
+  };
+}
+
+function parseTaskRequest(body) {
+  const task = parseTaskCreateRequest(body);
+  if (!task.ok) return task;
+  const research = parseResearchRequest(body.input || {}, task.value.type);
+  if (!research.ok) return research;
+  return {
+    ok: true,
+    value: {
+      type: task.value.type,
+      input: research.value,
+    },
+  };
 }
 
 const server = createServer(async (req, res) => {
@@ -69,8 +110,10 @@ const server = createServer(async (req, res) => {
       return;
     }
     try {
-      const parsed = await readJsonBody();
-      const result = await runtime.runImport(parsed);
+      const body = await readJsonBody();
+      const parsed = parseImportRequest(body);
+      if (!parsed.ok) return contractError(res, parsed.errors);
+      const result = await runtime.runImport({ ...body, ...parsed.value });
       if (!result.ok) {
         json(res, 422, result);
         return;
@@ -101,7 +144,12 @@ const server = createServer(async (req, res) => {
     if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
     try {
       const body = await readJsonBody();
-      json(res, 200, await runtime.runChat(body, requestCtx(req, body)));
+      const agent = parseAgentRequest(body);
+      if (!agent.ok) return contractError(res, agent.errors);
+      const context = parseBusinessContext(body.context);
+      if (!context.ok) return contractError(res, context.errors);
+      const parsed = { ...body, ...agent.value, context: context.value };
+      json(res, 200, await runtime.runChat(parsed, requestCtx(req, parsed)));
     } catch (err) {
       json(res, err instanceof SyntaxError ? 400 : 500, { ok: false, error: "chat failed" });
     }
@@ -112,7 +160,9 @@ const server = createServer(async (req, res) => {
     if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
     try {
       const body = await readJsonBody();
-      json(res, 200, await research.handlePartResearch(body, req));
+      const parsed = parseResearchRequest(body, "part_research");
+      if (!parsed.ok) return contractError(res, parsed.errors);
+      json(res, 200, await research.handlePartResearch(parsed.value, req));
     } catch (err) {
       json(res, err instanceof SyntaxError ? 400 : 500, { ok: false, error: "part research failed" });
     }
@@ -123,7 +173,9 @@ const server = createServer(async (req, res) => {
     if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
     try {
       const body = await readJsonBody();
-      json(res, 200, await research.handleCompanyResearch(body, req));
+      const parsed = parseResearchRequest(body, "company_research");
+      if (!parsed.ok) return contractError(res, parsed.errors);
+      json(res, 200, await research.handleCompanyResearch(parsed.value, req));
     } catch (err) {
       json(res, err instanceof SyntaxError ? 400 : 500, { ok: false, error: "company research failed" });
     }
@@ -134,8 +186,9 @@ const server = createServer(async (req, res) => {
     if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
     try {
       const body = await readJsonBody();
-      const type = body.type === "company_research" ? "company_research" : "part_research";
-      const task = research.createTask(type, body.input || body);
+      const parsed = parseTaskRequest(body);
+      if (!parsed.ok) return contractError(res, parsed.errors);
+      const task = research.createTask(parsed.value.type, parsed.value.input);
       research.runTask(task.taskId, req).catch((err) => console.error("[agent-api] task", err));
       json(res, 202, { taskId: task.taskId, type: task.type, status: task.status });
     } catch {
@@ -145,6 +198,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname.startsWith("/v1/tasks/")) {
+    if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
     const rest = url.pathname.slice("/v1/tasks/".length);
     const [id, tail] = rest.split("/");
     const task = research.getTask(id);
