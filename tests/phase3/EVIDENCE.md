@@ -52,4 +52,4 @@ huaqiangbei-workbench:   ## main...origin/main
 
 - Radar UI still uses its local `heuristicParse` (fallback stays in the business app)
 - No `/v1/parts/research` or company research
-- Unstructured extract still requires the official agent (`needsAgent: true`) unless the caller already supplies `rawRows`
+- Unstructured extract now continues through official import tools (`needsAgent: false`, `viaHarness: true`) unless the caller already supplies `rawRows`

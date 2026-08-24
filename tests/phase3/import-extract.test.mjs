@@ -24,7 +24,13 @@ test("POST /v1/import/extract returns candidates for mapped CSV and does not wri
   const port = 18789;
   const child = spawn(process.execPath, [join(root, "apps/agent-api/src/index.js")], {
     cwd: root,
-    env: { ...process.env, AGENT_API_PORT: String(port), AGENT_API_HOST: "127.0.0.1" },
+    env: {
+      ...process.env,
+      AGENT_API_PORT: String(port),
+      AGENT_API_HOST: "127.0.0.1",
+      ELECTRONICS_HARNESS_STUB: "1",
+      DEEPSEEK_API_KEY: "",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   try {
@@ -50,6 +56,8 @@ test("POST /v1/import/extract returns candidates for mapped CSV and does not wri
     assert.equal(body.candidates[0].qty, 10000);
     assert.equal(body.candidates[0].selected, undefined);
     assert.equal(body.needsAgent, false);
+    assert.equal(body.viaHarness, false);
+    assert.equal(body.route, "core");
 
     const pending = await fetch(`http://127.0.0.1:${port}/v1/import/extract`, {
       method: "POST",
@@ -62,8 +70,10 @@ test("POST /v1/import/extract returns candidates for mapped CSV and does not wri
     });
     const pendingBody = await pending.json();
     assert.equal(pending.status, 200);
-    assert.equal(pendingBody.needsAgent, true);
-    assert.deepEqual(pendingBody.candidates, []);
+    assert.equal(pendingBody.needsAgent, false);
+    assert.equal(pendingBody.viaHarness, true);
+    assert.ok(pendingBody.toolsCalled.includes("import_normalize_text"));
+    assert.ok(pendingBody.toolsCalled.includes("import_validate_rows"));
   } finally {
     child.kill("SIGTERM");
   }

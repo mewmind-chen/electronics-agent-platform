@@ -10,9 +10,14 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-sdk-client": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2",
     "@electronics/contracts": "file:../../packages/contracts",
     "@electronics/import-core": "file:../../packages/import-core",
     "@electronics/part-intelligence-core": "file:../../packages/part-intelligence-core",
-    "@electronics/company-intelligence-core": "file:../../packages/company-intelligence-core"
+    "@electronics/company-intelligence-core": "file:../../packages/company-intelligence-core",
+    "@electronics/dsh-hello": "file:../../packages/dsh-hello",
+    "@electronics/dsh-import": "file:../../packages/dsh-import",
+    "@electronics/dsh-part": "file:../../packages/dsh-part",
+    "@electronics/dsh-company": "file:../../packages/dsh-company"
   }
 }
