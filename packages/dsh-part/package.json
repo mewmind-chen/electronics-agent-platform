@@ -1,0 +1,16 @@
+{
+  "name": "@electronics/dsh-part",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "^0.1.1-rc.2"
+  },
+  "dependencies": {
+    "@electronics/part-intelligence-core": "file:../part-intelligence-core"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2"
+  }
+}

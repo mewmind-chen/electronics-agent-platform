@@ -1,0 +1,19 @@
+{
+  "name": "@electronics/contracts",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Stable Agent API contracts. Framework-neutral. No Harness types. No business SQL.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./import": "./src/import.js",
+    "./part": "./src/part.js",
+    "./company": "./src/company.js",
+    "./evidence": "./src/evidence.js",
+    "./task": "./src/task.js"
+  },
+  "files": [
+    "src"
+  ]
+}

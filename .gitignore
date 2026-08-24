@@ -1,0 +1,11 @@
+node_modules
+.dsh-platform/**
+!.dsh-platform/.gitkeep
+runtime/hello.cordis.yml
+packages/*/cordis.patch.yml
+*.log
+.DS_Store
+.env
+.credentials.yaml
+.dsh-platform/sessions
+.dsh-platform/workspace

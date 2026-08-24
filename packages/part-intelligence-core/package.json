@@ -1,0 +1,15 @@
+{
+  "name": "@electronics/part-intelligence-core",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-neutral part research: dossier + market scoring. No Harness. No business DB.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@electronics/contracts": "file:../contracts",
+    "@electronics/market-sources": "file:../market-sources"
+  }
+}

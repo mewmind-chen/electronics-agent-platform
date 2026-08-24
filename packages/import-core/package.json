@@ -1,0 +1,18 @@
+{
+  "name": "@electronics/import-core",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Import Pipeline V2 deterministic core: readers, validators, mapping executor. No Harness. No heuristic main path.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@electronics/contracts": "file:../contracts",
+    "@electronics/domain": "file:../electronics-domain"
+  },
+  "optionalDependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

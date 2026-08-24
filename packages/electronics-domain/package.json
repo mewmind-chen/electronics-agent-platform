@@ -1,0 +1,14 @@
+{
+  "name": "@electronics/domain",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-neutral electronics domain parsers. No Harness. No business DB.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@electronics/contracts": "file:../contracts"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@electronics/market-sources",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-neutral market connectors. Credentials are request-scoped. No Harness. No business DB.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  }
+}

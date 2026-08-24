@@ -1,0 +1,27 @@
+{
+  "name": "electronics-agent-platform",
+  "private": true,
+  "type": "module",
+  "description": "Independent electronics Agent Platform. Domain core is not Harness. Phase 1 is the official channel. Phase 2 is contracts.",
+  "scripts": {
+    "overlays": "node scripts/write-overlays.mjs",
+    "dump-config": "node scripts/write-overlays.mjs && dsh --profile headless --patch ./runtime/hello.cordis.yml --dump-config",
+    "api": "node scripts/write-overlays.mjs && node apps/agent-api/src/index.js",
+    "phase1:dump": "node scripts/write-overlays.mjs && dsh --profile headless --patch ./runtime/hello.cordis.yml --dump-config",
+    "test": "node --test packages/contracts/src/contracts.test.js packages/import-core/src/import-core.test.js packages/market-sources/src/market-sources.test.js packages/part-intelligence-core/src/*.test.js packages/company-intelligence-core/src/*.test.js tests/phase1/*.test.mjs tests/phase3/*.test.mjs tests/phase5/*.test.mjs"
+  },
+  "workspaces": [
+    "packages/contracts",
+    "packages/electronics-domain",
+    "packages/import-core",
+    "packages/market-sources",
+    "packages/dsh-hello",
+    "packages/dsh-import",
+    "packages/part-intelligence-core",
+    "packages/company-intelligence-core",
+    "packages/dsh-part",
+    "packages/dsh-company",
+    "apps/agent-api",
+    "runtime"
+  ]
+}
