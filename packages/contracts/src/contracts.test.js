@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   parseImportCandidate,
   parseImportRequest,
@@ -13,6 +16,9 @@ import {
   parseClaim,
   parseVerdict,
   parseTaskCreateRequest,
+  parseAgentRequest,
+  parseAgentResponse,
+  validateSkillSop,
   CONTRACT_VERSION,
 } from "./index.js";
 
@@ -222,4 +228,29 @@ test("task create is typed and forbids SQL", () => {
 test("claim helper", () => {
   const claim = parseClaim({ text: "立创有货", evidenceId: "evi-1" });
   assert.equal(claim.ok, true);
+});
+
+test("agent request/response and part skill SOP are frozen", () => {
+  const req = parseAgentRequest({ message: "分析 TPS54560DDAR" });
+  assert.equal(req.ok, true);
+  const skill = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../.dsh/skills/part.md"), "utf8");
+  assert.equal(validateSkillSop(skill).ok, true);
+  const good = parseAgentResponse({
+    ok: true,
+    intent: { kind: "part_research", skill: "part", mpn: "TPS54560DDAR" },
+    skill: "part",
+    toolsCalled: ["part_research"],
+    result: {
+      mpn: "TPS54560DDAR",
+      evidence: [{ id: "evi-1", sourceKey: "lcsc", title: "lcsc" }],
+      verdict: { state: "平稳", score: 40, confidence: "medium", claims: [{ text: "交叉完成", evidenceId: "evi-1" }] },
+    },
+    report: { markdown: "# 型号研究 TPS54560DDAR", claimsCited: ["evi-1"] },
+  });
+  assert.equal(good.ok, true);
+  const missing = parseAgentResponse({
+    ok: true,
+    intent: { kind: "part_research", skill: "part", mpn: "TPS54560DDAR" },
+  });
+  assert.equal(missing.ok, false);
 });

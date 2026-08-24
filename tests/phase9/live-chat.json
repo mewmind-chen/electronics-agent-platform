@@ -1,0 +1,46 @@
+{
+  "at": "2026-08-24T06:34:28.848Z",
+  "ms": 12145,
+  "ok": true,
+  "viaHarness": true,
+  "skill": "part",
+  "toolsCalled": [
+    "part_research"
+  ],
+  "mpn": "TPS54560DDAR",
+  "intent": {
+    "kind": "part_research",
+    "skill": "part",
+    "mpn": "TPS54560DDAR",
+    "reason": "natural-language part research"
+  },
+  "route": "harness",
+  "modelRoute": {
+    "role": "reasoning",
+    "provider": "opencode-go",
+    "model": "deepseek-v4-pro",
+    "quality": "standard",
+    "fallbackCount": 0,
+    "escalated": false
+  },
+  "claimsCited": [],
+  "reportHead": "# 型号研究 TPS54560DDAR\n\n身份：证据不足，未确认。\n\n结论：未知（置信度 low）\n证据不足，不给出市场判断。\n\nAgent 不写库存、询价或研究报告库。正式落库由业务系统确认。",
+  "error": "",
+  "researchKeys": [
+    "mpn",
+    "goal",
+    "steps",
+    "result",
+    "viaHarness",
+    "usedAi",
+    "route",
+    "toolsCalled",
+    "modelRoute",
+    "mode",
+    "evidence",
+    "verdict",
+    "ok"
+  ],
+  "rawOk": true,
+  "rawErrors": null
+}

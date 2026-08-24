@@ -68,6 +68,7 @@ export function createResearchHandlers(runtime) {
 export function listTaskRoutes() {
   return [
     "/v1/hello",
+    "/v1/chat",
     "/v1/import/extract",
     "/v1/parts/research",
     "/v1/companies/research",

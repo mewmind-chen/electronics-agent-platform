@@ -11,7 +11,8 @@
     "./part": "./src/part.js",
     "./company": "./src/company.js",
     "./evidence": "./src/evidence.js",
-    "./task": "./src/task.js"
+    "./task": "./src/task.js",
+    "./agent": "./src/agent.js"
   },
   "files": [
     "src"

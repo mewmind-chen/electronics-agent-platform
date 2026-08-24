@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseExecutionMode } from "@electronics/contracts";
 import { extractImport } from "@electronics/import-core";
-import { researchPart } from "@electronics/part-intelligence-core";
+import { composePartReport, inferPartIntent, normalizePartResult, researchPart } from "@electronics/part-intelligence-core";
 import { researchCompany } from "@electronics/company-intelligence-core";
 import { inferTaskFromInput, nextEscalationRole, toModelRoute } from "@electronics/model-policy";
 import {
@@ -58,6 +58,8 @@ function importPrompt(input) {
 function partPrompt(input) {
   return [
     "Load skill part.",
+    "Follow Goal, Tools, Steps, Evidence, Answer, Hard rules.",
+    `The user said: ${JSON.stringify(input.message || `分析 ${input.mpn}`)}.`,
     `Call part_research with the exact MPN ${JSON.stringify(input.mpn)}.`,
     "Do not truncate suffixes. Return the tool JSON unchanged. Never write a business database.",
     `Request: ${JSON.stringify({ mpn: input.mpn, goal: input.goal, steps: input.steps })}`,
@@ -114,7 +116,7 @@ async function officialRunAgent(job, agentRuntime) {
   const persona = {
     hello: "You are the electronics-agent-platform probe. Call hello_ping and return only that tool JSON.",
     import: "You are Import Intelligence. Follow skill import. Call official import_* tools. Return ImportCandidate JSON only.",
-    part: "You are Part Intelligence. Follow skill part. Call part_research. Return that JSON only.",
+    part: "You are the Electronics Part Intelligence Agent. Follow skill part. Call part_research. Return that JSON only. Never write a database.",
     company: "You are Company Intelligence. Follow skill company. Call company_research. Return that JSON only.",
   };
   const harness = new DeepSeekHarness({
@@ -378,6 +380,53 @@ export function createRuntime(overrides = {}) {
         return { ...agent, premiumReviewUnavailable: true };
       }
       return agent;
+    },
+
+    async runChat(input, ctx = {}) {
+      const message = String(input.message || "").trim();
+      const intent = inferPartIntent(message);
+      if (intent.kind !== "part_research") {
+        return {
+          ok: false,
+          intent,
+          skill: null,
+          toolsCalled: [],
+          error: "unsupported_intent",
+          reason: intent.reason,
+          viaHarness: false,
+          usedAi: false,
+          route: "unsupported",
+          mode: resolveExecutionMode(input),
+        };
+      }
+      const research = await this.runPartResearch(
+        {
+          ...input,
+          mpn: intent.mpn,
+          goal: input.goal || message,
+          message,
+        },
+        ctx,
+      );
+      const normalized = research.error === "agent_unavailable" ? null : normalizePartResult(research, intent.mpn);
+      const parsedOk = Boolean(normalized && composePartReport(normalized, intent.mpn));
+      const report = parsedOk ? composePartReport(normalized, intent.mpn) : { markdown: "研究未完成。", claimsCited: [] };
+      return {
+        ok: parsedOk && research.error !== "agent_unavailable",
+        intent,
+        skill: "part",
+        toolsCalled: research.toolsCalled || (research.viaHarness ? ["part_research"] : []),
+        result: parsedOk ? { ...research, ...normalized, ok: true } : null,
+        report,
+        viaHarness: Boolean(research.viaHarness),
+        usedAi: Boolean(research.usedAi),
+        route: research.route,
+        mode: research.mode,
+        modelRoute: research.modelRoute || null,
+        error: research.error,
+        reason: research.reason,
+        premiumReviewUnavailable: Boolean(research.premiumReviewUnavailable),
+      };
     },
 
     async startPartResearch(input, ctx = {}) {

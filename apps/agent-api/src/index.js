@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTRACT_VERSION } from "@electronics/contracts";
 import { createRuntime } from "./runtime.js";
-import { createResearchHandlers, listTaskRoutes } from "./research.js";
+import { createResearchHandlers, listTaskRoutes, requestCtx } from "./research.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 mkdirSync(join(root, ".dsh-platform/sessions"), { recursive: true });
@@ -93,6 +93,17 @@ const server = createServer(async (req, res) => {
     } catch (err) {
       console.error("[agent-api] extract failed", err);
       json(res, 500, { ok: false, error: err instanceof SyntaxError ? "invalid JSON" : "extract failed" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/v1/chat") {
+    if (!authorized(req)) return json(res, 401, { ok: false, error: "unauthorized" });
+    try {
+      const body = await readJsonBody();
+      json(res, 200, await runtime.runChat(body, requestCtx(req, body)));
+    } catch (err) {
+      json(res, err instanceof SyntaxError ? 400 : 500, { ok: false, error: "chat failed" });
     }
     return;
   }
