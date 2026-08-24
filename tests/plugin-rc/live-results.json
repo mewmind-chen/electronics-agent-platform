@@ -1,0 +1,93 @@
+{
+  "version": "0.1.0",
+  "chainPrefix": [
+    "electronics-agent plugin tools",
+    "POST Agent API",
+    "electronics-agent-platform"
+  ],
+  "ok": true,
+  "scenarios": {
+    "part": {
+      "prompt": "\u5206\u6790 TPS54560DDAR",
+      "tool": "part_research",
+      "http": "/v1/parts/research",
+      "mpn": "TPS54560DDAR",
+      "ok": true,
+      "error": null,
+      "userVisibleHeading": true,
+      "dumpedRawJson": false
+    },
+    "importImage": {
+      "prompt": "\u4e0a\u4f20\u62a5\u4ef7\u56fe\u7247\u5e76\u8bc6\u522b",
+      "tool": "import_extract",
+      "http": "/v1/import/extract",
+      "sourceType": "image",
+      "ok": false,
+      "error": "vision_unavailable",
+      "candidates": 0,
+      "userVisibleFailure": true,
+      "fabricated": false
+    },
+    "company": {
+      "prompt": "\u5206\u6790\u4f9b\u5e94\u5546 TI",
+      "tool": "company_research",
+      "http": "/v1/companies/research",
+      "ok": true,
+      "error": null,
+      "evidenceCount": 0,
+      "unknownWithoutEvidence": true,
+      "inventedContacts": false
+    }
+  },
+  "httpLog": [
+    {
+      "method": "POST",
+      "path": "/v1/parts/research",
+      "statusCode": 200
+    },
+    {
+      "method": "POST",
+      "path": "/v1/import/extract",
+      "statusCode": 422
+    },
+    {
+      "method": "POST",
+      "path": "/v1/companies/research",
+      "statusCode": 200
+    }
+  ],
+  "harness": {
+    "profile": "headless",
+    "cli": "dsh --profile headless (official CLI, not DeepSeekHarness SDK)",
+    "pluginLoaded": true,
+    "toolsRegistered": [
+      "part_research",
+      "import_extract",
+      "company_research"
+    ],
+    "skillsRegistered": [
+      "part-analysis",
+      "import-analysis",
+      "company-analysis"
+    ],
+    "transcripts": "tests/plugin-rc/transcripts/",
+    "credentialsNote": "GUI ~/.dsh/.credentials.yaml is version/refs; current CLI parser wants flat KEY:string. Boot used an uncommitted /tmp --patch. Original credentials file was not modified.",
+    "platformHttpDuringHarnessAndToolLive": [
+      {
+        "method": "POST",
+        "path": "/v1/parts/research",
+        "statusCode": 200
+      },
+      {
+        "method": "POST",
+        "path": "/v1/import/extract",
+        "statusCode": 422
+      },
+      {
+        "method": "POST",
+        "path": "/v1/companies/research",
+        "statusCode": 200
+      }
+    ]
+  }
+}

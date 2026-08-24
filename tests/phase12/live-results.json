@@ -1,0 +1,37 @@
+{
+  "phase": 12,
+  "promptUserEntry": "dsh --profile headless (not DeepSeekHarness SDK)",
+  "install": {
+    "profile": "desktop",
+    "command": "dsh plugin --profile desktop add file:./electronics-agent-plugin",
+    "pluginLoaded": true,
+    "toolsRegistered": ["part_research", "import_extract", "company_research"],
+    "skillsRegistered": ["part-analysis", "import-analysis", "company-analysis"],
+    "desktopUrl": "http://127.0.0.1:18721"
+  },
+  "scenarios": {
+    "part": {
+      "prompt": "分析 TPS54560DDAR",
+      "tool": "part_research",
+      "platformPath": "/v1/parts/research",
+      "platformStatus": 200,
+      "userSawReportHeading": "型号分析报告",
+      "dumpedRawToolJson": false
+    },
+    "importImage": {
+      "prompt": "upload quote image → import_extract sourceType=image",
+      "tool": "import_extract",
+      "platformPath": "/v1/import/extract",
+      "platformStatus": 422,
+      "error": "vision_unavailable",
+      "fabricatedCandidates": false
+    },
+    "company": {
+      "prompt": "分析供应商 TI",
+      "tool": "company_research",
+      "platformPath": "/v1/companies/research",
+      "platformStatus": 200,
+      "unknownWithoutEvidence": true
+    }
+  }
+}

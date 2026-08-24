@@ -8,7 +8,7 @@
     "dump-config": "node scripts/write-overlays.mjs && dsh --profile headless --patch ./runtime/hello.cordis.yml --dump-config",
     "api": "node scripts/write-overlays.mjs && node apps/agent-api/src/index.js",
     "phase1:dump": "node scripts/write-overlays.mjs && dsh --profile headless --patch ./runtime/hello.cordis.yml --dump-config",
-    "test": "node --test packages/contracts/src/contracts.test.js packages/import-core/src/import-core.test.js packages/market-sources/src/market-sources.test.js packages/part-intelligence-core/src/*.test.js packages/company-intelligence-core/src/*.test.js packages/model-policy/src/*.test.js tests/phase1/*.test.mjs tests/phase3/*.test.mjs tests/phase5/*.test.mjs tests/phase8/*.test.mjs tests/phase82/*.test.mjs tests/phase9/*.test.mjs tests/phase9/part-eval/*.test.mjs tests/phase10/import-eval/*.test.mjs tests/phase10/company-eval/*.test.mjs tests/phase10/*.test.mjs"
+    "test": "node --test packages/contracts/src/contracts.test.js packages/import-core/src/import-core.test.js packages/market-sources/src/market-sources.test.js packages/part-intelligence-core/src/*.test.js packages/company-intelligence-core/src/*.test.js packages/model-policy/src/*.test.js tests/phase1/*.test.mjs tests/phase3/*.test.mjs tests/phase5/*.test.mjs tests/phase8/*.test.mjs tests/phase82/*.test.mjs tests/phase9/*.test.mjs tests/phase9/part-eval/*.test.mjs tests/phase10/import-eval/*.test.mjs tests/phase10/company-eval/*.test.mjs tests/phase10/*.test.mjs tests/phase11/*.test.mjs tests/phase12/*.test.mjs tests/plugin-rc/*.test.mjs"
   },
   "workspaces": [
     "packages/contracts",

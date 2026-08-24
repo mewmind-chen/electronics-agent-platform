@@ -1,0 +1,7 @@
+# User-profile bundle patch. Inserts HTTP tools into an existing DeepSeek Harness
+# profile. Does not replace the Platform Runtime composition.
+# `name` must be the package name so Cordis resolves from profile node_modules.
+# Skills are registered from apply() via ctx.skills.register.
+- insert:
+    - id: electronics-agent
+      name: electronics-agent

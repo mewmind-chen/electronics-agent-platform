@@ -1,0 +1,34 @@
+{
+  "name": "electronics-agent",
+  "version": "0.1.0",
+  "description": "Electronic component intelligence agent. Calls electronics-agent-platform over HTTP.",
+  "skills": [
+    "skills/part-analysis.md",
+    "skills/import-analysis.md",
+    "skills/company-analysis.md"
+  ],
+  "tools": [
+    {
+      "name": "part_research",
+      "method": "POST",
+      "path": "/v1/parts/research"
+    },
+    {
+      "name": "import_extract",
+      "method": "POST",
+      "path": "/v1/import/extract"
+    },
+    {
+      "name": "company_research",
+      "method": "POST",
+      "path": "/v1/companies/research"
+    }
+  ],
+  "requiredEndpoint": "/v1",
+  "configFromEnvironment": ["AGENT_API_URL", "ELECTRONICS_AGENT_PLATFORM_TOKEN"],
+  "permissions": {
+    "network": "electronics-agent-platform Agent API only",
+    "database": false,
+    "secretsOnDisk": false
+  }
+}

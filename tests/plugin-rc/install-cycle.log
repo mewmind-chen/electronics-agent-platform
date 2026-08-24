@@ -1,0 +1,105 @@
+
+===== PATH pnpm (expected v10; may mismatch profile store v11) =====
+/opt/homebrew/bin/pnpm
+10.28.2
+
+===== capture store mismatch if PATH pnpm is used =====
+ ERR_PNPM_UNEXPECTED_STORE  Unexpected store location
+
+The dependencies at "~/.dsh/profiles/headless/node_modules" are currently linked from the store at "~/Library/pnpm/store/v11".
+
+pnpm now wants to use the store at "~/Library/pnpm/store/v10" to link dependencies.
+
+If you want to use the new store location, reinstall your dependencies with "pnpm install".
+
+You may change the global store location by running "pnpm config set store-dir <dir> --global".
+(This error may happen if the node_modules was installed with a different major version of pnpm)
+dsh: pnpm failed in profile directory ~/.dsh/profiles/headless
+remove-with-path-pnpm exit:1
+7: ERR_PNPM_UNEXPECTED_STORE  Unexpected store location
+
+===== wrapper pnpm =====
+/tmp/electronics-agent-rc-pnpm11/pnpm
+11.23.0
+
+===== 1. ensure removed =====
++ dsh plugin --profile headless remove electronics-agent
+✓ Lockfile passes supply-chain policies (verified 32m ago)
+
+dependencies:
+- electronics-agent file:<repo>/electronics-agent-plugin
+
+Already up to date
+Done in 244ms using pnpm v11.23.0
+exit:0
+
+===== dump-config after remove =====
+
+===== apply after remove =====
+{"present":false}
+{}
+bundles ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless']
+
+===== 2. first install =====
++ dsh plugin --profile headless add file:./electronics-agent-plugin
+✓ Lockfile passes supply-chain policies (verified 2s ago)
+Progress: resolved 1, reused 0, downloaded 0, added 0
+[WARN] Issues with peer dependencies found. Run "pnpm peers check" to list them.
+
+dependencies:
++ electronics-agent file:<repo>/electronics-agent-plugin
+
+Packages: +1
++
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: ~/Library/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 1, reused 1, downloaded 0, added 1, done
+Done in 301ms using pnpm v11.23.0
+exit:0
+
+===== dump-config after first install =====
+# == electronics-agent
+
+===== apply after first install =====
+{"present":true,"version":"0.1.0","tools":["part_research","import_extract","company_research"],"skills":["company-analysis","import-analysis","part-analysis"]}
+
+===== 3. remove again =====
++ dsh plugin --profile headless remove electronics-agent
+✓ Lockfile passes supply-chain policies (verified 2s ago)
+
+dependencies:
+- electronics-agent file:<repo>/electronics-agent-plugin
+
+Already up to date
+Done in 241ms using pnpm v11.23.0
+exit:0
+
+===== dump-config after second remove =====
+
+===== apply after second remove =====
+{"present":false}
+
+===== 4. reinstall =====
++ dsh plugin --profile headless add file:./electronics-agent-plugin
+✓ Lockfile passes supply-chain policies (verified 2s ago)
+Progress: resolved 1, reused 0, downloaded 0, added 0
+[WARN] Issues with peer dependencies found. Run "pnpm peers check" to list them.
+
+dependencies:
++ electronics-agent file:<repo>/electronics-agent-plugin
+
+Packages: +1
++
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: ~/Library/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 1, reused 1, downloaded 0, added 1, done
+Done in 301ms using pnpm v11.23.0
+exit:0
+
+===== dump-config after reinstall =====
+# == electronics-agent
+
+===== apply after reinstall =====
+{"present":true,"version":"0.1.0","tools":["part_research","import_extract","company_research"],"skills":["company-analysis","import-analysis","part-analysis"]}

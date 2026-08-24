@@ -1,0 +1,17 @@
+{
+  "prompt": "分析 TPS54560DDAR",
+  "chain": [
+    "DeepSeek Harness",
+    "electronics-agent plugin",
+    "part_research",
+    "POST /v1/parts/research",
+    "electronics-agent-platform"
+  ],
+  "ok": true,
+  "viaHarness": true,
+  "toolsCalled": [
+    "part_research"
+  ],
+  "mpn": "TPS54560DDAR",
+  "error": ""
+}

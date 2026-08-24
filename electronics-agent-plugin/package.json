@@ -1,0 +1,35 @@
+{
+  "name": "electronics-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "User-side DeepSeek Harness plugin. HTTP tools call electronics-agent-platform only.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "manifest.json",
+    "cordis.patch.yml",
+    "README.md",
+    "src",
+    "tools",
+    "skills"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.1-rc.2"
+  }
+}

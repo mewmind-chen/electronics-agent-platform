@@ -1,0 +1,8 @@
+已按要求调用 `import_extract`（sourceType=image, kind=offer, mime=image/png, filename=quote-tps54560.png, fileBase64=not-a-real-png）。
+
+**结果：失败，`vision_unavailable`**
+
+- 原因：`vision_unavailable`
+- 未生成任何候选行，未伪造任何识别结果
+
+由于传入的 fileBase64 不是真实 PNG 数据（占位值 `not-a-real-png`），服务端无法进行图像识别，因此本次导入以 `vision_unavailable` 失败告终。如需继续，请提供真实的报价图片文件内容，我可以重新执行识别。
