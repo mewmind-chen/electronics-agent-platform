@@ -49,7 +49,7 @@ replaceable capability boundary and versioned evaluation evidence.
 3. Durable task state, SSE, idempotency, limits, deadlines and observability.
 4. Versioned 30 Import / 20 Part / 20 Company evaluation corpus and human
    accept/reject correction records.
-5. Qualified long-document and vision import paths.
+5. Qualified vision import path (`deepseek-v4-flash-vision-exp`). Long-document import is out of product scope.
 
 The queue deliberately excludes Supervisor, autonomous database writes and
 automatic commercial decisions.

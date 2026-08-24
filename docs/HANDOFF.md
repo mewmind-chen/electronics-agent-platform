@@ -57,17 +57,17 @@ Workbench（远端 HEAD `fbb73e3`）：
 
 ## 当前现场
 
-Platform `main` 已推送 HEAD 为 `6dc8036`。本地全量测试 **115/115**。
+三仓均为 `main`，相对 `origin/main` 超前、尚未推送：
+
+- Platform：本批 Vision（`deepseek-v4-flash-vision-exp` + image block + attachment admission + live 资格）
+- Radar：`1c32d49` 人工决定持久化测试
+- Workbench：`d8b5869` 修正报告 `corrected_json`
 
 根目录仍有未跟踪文件，**禁止误提交**：
 
 - `package-lock.json`（用户原有；不要暂存）
 - `HANDOFF.md`（与 `docs/HANDOFF.md` 重复的根目录副本）
 - `eslint.config.mjs/`（异常目录，不要当配置提交）
-
-Radar：`npm test` **218/218**，`typecheck` 通过。工作区有人工决定测试补强，尚未提交。
-
-Workbench：脚本测试 **159** + TypeScript **24**，`typecheck` 通过。工作区有 `0009_report_review_correction.sql`（修正正文 `corrected_json`），尚未提交。
 
 ## DSH 边界
 
@@ -89,11 +89,19 @@ Workbench：脚本测试 **159** + TypeScript **24**，`typecheck` 通过。工�
 4. ~~人工接受 / 拒绝 / 修正闭环~~ → Radar `ef011a9`；Workbench `fbb73e3` + `0009`（修正正文）
 5. ~~出具 14 项验收证据~~ → `docs/ACCEPTANCE_14.md`（第 1/10/11 项已写准确，第 14 项 Workbench 修正已做实）
 
+已完成（本批 Vision，不要再当待办）：
+
+6. ~~图片 Import 接到官方 `deepseek-official/deepseek-v4-flash-vision-exp`~~ → live smoke + 报价图回归写入 `tests/phase82/live-results.json`（**5/10 production**，含 vision）
+
+明确不做：
+
+- Long Import（`kimi-k3` / `free-long`）。PDF / Word / 长 BOM 继续 `agent_unavailable`。产品不需要这条路径。
+- 凑满 10 个 production、`grok-4.6` adapter、`glm-4v-flash`。
+
 仍未完成：
 
-1. Vision / Long Import 的生产能力路径与资格验证。现状：9 个绑定模型里 **4 个 production**，`glm-4v-flash` 未过，long 路径超时。Import30 / Part21 / Company22 契约评测已在 `npm test` 中跑过。
-2. 将本批三仓提交推送到对应远端。未推送不算完成。
-3. 不要用 §37 签字代替整体落地。整体落地还要看 Vision/Long、production 模型池、CI 绿、三仓推送。
+1. 将本批三仓提交推送到对应远端。未推送不算完成。
+2. 不要用 §37 签字代替整体落地。整体落地还要看 CI 绿、三仓推送。
 
 ## 交接原则
 

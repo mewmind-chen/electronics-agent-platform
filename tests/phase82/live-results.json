@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-24T06:00:33.440Z",
+  "at": "2026-08-24T10:15:38.477Z",
   "processReady": true,
   "catalog": [
     {
@@ -65,6 +65,14 @@
       "availability": "bound",
       "auth": "oauth-subscription",
       "source": "dsh-plugin-subscriptions"
+    },
+    {
+      "id": "deepseek-official/deepseek-v4-flash-vision-exp",
+      "providerId": "deepseek-official",
+      "model": "deepseek-v4-flash-vision-exp",
+      "availability": "bound",
+      "auth": "harness-credentials-ref",
+      "source": "dsh-llm-deepseek"
     },
     {
       "id": "describe-image/glm-4v-flash",
@@ -349,6 +357,43 @@
       },
       "failureReason": "describe-image is a plugin backend, not a proven Harness agent model",
       "notes": ""
+    },
+    {
+      "id": "deepseek-official/deepseek-v4-flash-vision-exp",
+      "providerId": "deepseek-official",
+      "model": "deepseek-v4-flash-vision-exp",
+      "verified": true,
+      "pool": "production",
+      "availability": "bound",
+      "capabilities": {
+        "json": "pass",
+        "toolCalling": "pass",
+        "structuredLong": "pass",
+        "harness": "pass",
+        "vision": "pass"
+      },
+      "failureReason": "",
+      "notes": "vision",
+      "ms": 10864,
+      "businessQualified": {
+        "import": "pass",
+        "part": "unknown",
+        "company": "unknown"
+      },
+      "skillsRun": [
+        {
+          "skill": "vision",
+          "toolsCalled": [
+            "import_apply_mapping",
+            "import_classify",
+            "import_normalize_text",
+            "import_parse_request",
+            "import_table_preview",
+            "import_validate_rows"
+          ],
+          "error": ""
+        }
+      ]
     }
   ]
 }

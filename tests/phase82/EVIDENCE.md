@@ -10,7 +10,7 @@ Radar / Workbench unchanged. No Bundle / UI / Supervisor.
 | llm | settings `llm-pi-ai.providers.llm` → LiteLLM `http://127.0.0.1:4000/v1` | harness credential ref | free-fast, free-strong, free-long |
 | grok | `dsh-plugin-subscriptions` | OAuth / X Premium | grok-4.6 |
 | describe-image | plugin settings backend | plugin settings | glm-4v-flash |
-| deepseek-official | `@deepseek-ai/dsh-llm-deepseek` | harness credential ref | present on default model plugin |
+| deepseek-official | `@deepseek-ai/dsh-llm-deepseek` | harness credential ref | deepseek-v4-flash-vision-exp (image-capable catalog model) |
 | modlens-opencode-go | `agent-default-model` | harness credential ref | alias of opencode-go flash |
 
 Model Policy does not store API keys, OAuth tokens, or baseURLs. Router consumes `{providerId, model, availability, capabilities, verified}`.
@@ -29,6 +29,7 @@ Path: Model Router identity → official `DeepSeekHarness.run` → skill hello �
 | kimi-k3 | opencode-go | pass | pass | pass | pass | n/a | **production** |
 | free-long | llm | pass | pass | pass | pass | n/a | **production** |
 | grok-4.6 | grok | fail | fail | fail | fail | n/a | candidate |
+| deepseek-v4-flash-vision-exp | deepseek-official | pass | pass | n/a | pass | **pass** | **production** |
 | glm-4v-flash | describe-image | fail | fail | fail | fail | unknown | candidate |
 
 Phase 8.3 replaced the `finalResponse.length >= 20` structuredLong heuristic. See `tests/phase83/EVIDENCE.md`. Long models must return a complete ImportCandidate table.
@@ -36,7 +37,11 @@ Phase 8.3 replaced the `finalResponse.length >= 20` structuredLong heuristic. Se
 ## Failures (not auto-selected)
 
 - **grok-4.6**: JSON-RPC runtime has no `grok` adapter. Desktop has `dsh-plugin-subscriptions` (OAuth). Adding the npm package to this runtime hit peer conflicts (`dsh-agent`). Recorded as `no adapter registered for provider "grok"` / incomplete smoke. Not production.
-- **glm-4v-flash**: current `describe-image` backend, not a Harness agent model. Vision role therefore has **zero** production models.
+- **glm-4v-flash**: current `describe-image` backend, not a Harness agent model.
+
+## Vision production
+
+`deepseek-v4-flash-vision-exp` via `deepseek-official`: live smoke + labeled quote-image import passed (`tests/phase82/fixtures/quote-tps54560.png`). Production for the vision role.
 
 Unverified rows stay `pool=candidate`, `verified=false`, capabilities unknown/fail. Router will not pick them.
 
@@ -46,7 +51,7 @@ Unverified rows stay `pool=candidate`, `verified=false`, capabilities unknown/fa
 - reasoning: deepseek-v4-pro → qwen3.7-max → free-strong
 - long: kimi-k3 → free-long
 - premium: none (grok candidate only)
-- vision: none
+- vision: deepseek-v4-flash-vision-exp
 
 ## Escalation
 

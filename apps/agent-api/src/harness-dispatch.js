@@ -167,12 +167,26 @@ export function coerceJsonObject(raw) {
 export function extractNamedTool(result, toolName) {
   const events = Array.isArray(result?.events) ? result.events : [];
   const names = [];
+  const rememberName = (value) => {
+    const tool = value?.name ?? value?.toolName ?? value?.tool ?? "";
+    if (String(tool).includes(toolName) && !names.includes(String(tool))) names.push(String(tool));
+  };
+  const collectNames = (value, depth = 0) => {
+    if (depth > 8 || value == null) return;
+    if (typeof value !== "object") return;
+    rememberName(value);
+    if (Array.isArray(value)) {
+      for (const item of value) collectNames(item, depth + 1);
+      return;
+    }
+    for (const v of Object.values(value)) collectNames(v, depth + 1);
+  };
   const visit = (value, depth = 0) => {
     if (depth > 8 || value == null) return null;
     if (typeof value === "object") {
+      rememberName(value);
       const tool = value.name ?? value.toolName ?? value.tool ?? "";
       if (String(tool).includes(toolName)) {
-        names.push(String(tool));
         const raw = value.output ?? value.result ?? value.value ?? value.content ?? value.text ?? null;
         const parsed = coerceJsonObject(raw) || coerceJsonObject(value);
         if (parsed) return parsed;
@@ -205,6 +219,9 @@ export function extractNamedTool(result, toolName) {
     }
     return null;
   };
+  collectNames(result?.finalResponse);
+  for (const ev of events) collectNames(ev);
+  for (const n of result?.notifications ?? []) collectNames(n);
   const fromText = visit(result?.finalResponse) || coerceJsonObject(result?.finalResponse);
   if (
     fromText &&

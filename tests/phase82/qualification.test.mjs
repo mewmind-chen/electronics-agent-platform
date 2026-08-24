@@ -31,7 +31,8 @@ test("only smoke-verified models enter production", () => {
       assert.equal(row.capabilities.toolCalling, "pass");
       assert.equal(row.capabilities.harness, "pass");
       const role = row.roles[0];
-      if (role === "fast" || role === "long") assert.equal(row.businessQualified.import, "pass");
+      if (role === "fast" || role === "long" || role === "vision") assert.equal(row.businessQualified.import, "pass");
+      if (role === "vision") assert.equal(row.capabilities.vision, "pass");
       if (role === "reasoning") {
         assert.equal(row.businessQualified.part, "pass");
         assert.equal(row.businessQualified.company, "pass");
@@ -44,7 +45,13 @@ test("only smoke-verified models enter production", () => {
   const premium = router.resolve({ kind: "part", role: "premium" });
   assert.equal(premium.ok, false, "unverified grok must not auto-select");
   const vision = router.resolve({ kind: "import", sourceType: "image" });
-  assert.equal(vision.ok, false, "unverified vision must not auto-select");
+  const visionProd = qualified.find((row) => row.roles.includes("vision") && inProductionPool(row));
+  if (visionProd) {
+    assert.equal(vision.ok, true);
+    assert.equal(vision.model, visionProd.model);
+  } else {
+    assert.equal(vision.ok, false, "unverified vision must not auto-select");
+  }
 });
 
 test("result-driven escalation stays off the caller flag", () => {

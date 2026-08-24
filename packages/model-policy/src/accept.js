@@ -29,11 +29,15 @@ export function normalizeImportResult(result) {
   return { candidates: [] };
 }
 
+function contractMapping(mapping) {
+  return mapping && Array.isArray(mapping.columns) ? mapping : undefined;
+}
+
 export function acceptImportRegression(result) {
   const normalized = normalizeImportResult(result);
   const parsed = parseImportResult({
     candidates: normalized.candidates || [],
-    mapping: normalized.mapping || result?.mapping,
+    mapping: contractMapping(normalized.mapping || result?.mapping),
     usedAi: true,
   });
   if (!parsed.ok) return { ok: false, reason: parsed.errors.map((e) => e.message).join("; ") };
@@ -54,7 +58,7 @@ export function acceptLongImport(result, expectedMinRows = 8) {
   const normalized = normalizeImportResult(result);
   const parsed = parseImportResult({
     candidates: normalized.candidates || [],
-    mapping: normalized.mapping || result?.mapping,
+    mapping: contractMapping(normalized.mapping || result?.mapping),
     usedAi: true,
   });
   if (!parsed.ok) return { ok: false, reason: parsed.errors.map((e) => e.message).join("; ") };

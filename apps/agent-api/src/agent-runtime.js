@@ -68,7 +68,12 @@ export function resolveModelPolicy(input = {}, env = process.env, extras = {}) {
     ok: true,
     provider: resolved.providerId || resolved.provider,
     model: resolved.model,
-    maxTokens: Number(input.maxTokens || env.DSH_MAX_TOKENS) > 0 ? Number(input.maxTokens || env.DSH_MAX_TOKENS) : 2048,
+    maxTokens:
+      Number(input.maxTokens || env.DSH_MAX_TOKENS) > 0
+        ? Number(input.maxTokens || env.DSH_MAX_TOKENS)
+        : extras.task?.role === "vision" || input.role === "vision"
+          ? 4096
+          : 2048,
     modelRoute: toModelRoute(resolved),
     id: resolved.id,
   };

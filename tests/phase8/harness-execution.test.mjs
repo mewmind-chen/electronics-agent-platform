@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRuntime } from "../../apps/agent-api/src/runtime.js";
-import { loadOfficialTools } from "../../apps/agent-api/src/harness-dispatch.js";
+import { extractNamedTool, loadOfficialTools } from "../../apps/agent-api/src/harness-dispatch.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const req = createRequire(import.meta.url);
@@ -139,4 +139,16 @@ test("production HTTP default does not advertise stub as Harness", async () => {
   } finally {
     child.kill("SIGTERM");
   }
+});
+
+test("extractNamedTool keeps import tool names when JSON is already in finalResponse", () => {
+  const extracted = extractNamedTool(
+    {
+      finalResponse: '{"candidates":[{"mpn":"TPS54560DDAR","qty":10000}]}',
+      events: [{ type: "tool/call", data: { name: "import_validate_rows", arguments: "{}" } }],
+    },
+    "import_",
+  );
+  assert.equal(extracted.value.candidates[0].mpn, "TPS54560DDAR");
+  assert.equal(extracted.toolsCalled.includes("import_validate_rows"), true);
 });

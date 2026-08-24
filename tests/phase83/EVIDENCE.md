@@ -18,6 +18,7 @@ Live path: Model Router identity → official DeepSeekHarness → Import / Part 
 | kimi-k3 | opencode-go | long import | none | **fail** | unknown | unknown | **fail** (timeout, 0 rows) | candidate |
 | free-long | llm | long import | none | **fail** | unknown | unknown | **fail** (timeout, 0 rows) | candidate |
 | grok-4.6 | grok | none this phase | — | unknown | unknown | unknown | fail | candidate |
+| deepseek-v4-flash-vision-exp | deepseek-official | vision import | `import_*` | **pass** | unknown | unknown | n/a | **production** |
 | glm-4v-flash | describe-image | none | — | unknown | unknown | unknown | fail | candidate |
 
 ## Failures
@@ -25,12 +26,16 @@ Live path: Model Router identity → official DeepSeekHarness → Import / Part 
 - **free-fast**: Harness + import tools ran; extracted JSON did not contain `TPS54560DDAR` with qty=10000 / DC=2418 / $1.15. Not business-qualified for import.
 - **kimi-k3 / free-long**: 180s Harness timeout on the 10-row BOM. `structuredLong=fail`. Not judged by `finalResponse.length`.
 - **grok-4.6**: still no grok adapter in this JSON-RPC composition.
-- **glm-4v-flash**: still a describe-image backend, not a Harness agent model. Vision requests return `vision_unavailable`.
+- **glm-4v-flash**: still a describe-image backend, not a Harness agent model.
+
+## Vision production
+
+`deepseek-v4-flash-vision-exp` official vision import of `tests/phase82/fixtures/quote-tps54560.png` returned TPS54560DDAR / 10000 / 2418 / $1.15. Production for the vision role.
 
 ## Runtime degrade
 
 - Premium escalation with no production premium model keeps the first reasoning result and sets `premiumReviewUnavailable: true`.
-- Image import with no vision model returns `error: vision_unavailable` and does not fake candidates.
+- Image import with no production vision model returns `error: vision_unavailable` and does not fake candidates. With `deepseek-v4-flash-vision-exp` in production, image import uses the official vision Harness path.
 
 ## structuredLong consistency
 

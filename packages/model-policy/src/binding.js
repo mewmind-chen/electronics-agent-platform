@@ -45,8 +45,8 @@ export const HARNESS_PROVIDER_CATALOG = Object.freeze([
     providerId: "deepseek-official",
     source: "dsh-llm-deepseek",
     auth: "harness-credentials-ref",
-    models: ["deepseek-v4-flash", "deepseek-chat"],
-    notes: "Present on headless/desktop default model plugin",
+    models: ["deepseek-v4-flash", "deepseek-chat", "deepseek-v4-flash-vision-exp"],
+    notes: "Present on headless/desktop default model plugin; vision-exp is the image-capable catalog model",
   },
 ]);
 
@@ -64,6 +64,7 @@ const BINDINGS = Object.freeze([
   { id: "litellm/free-strong", providerId: "llm", model: "free-strong" },
   { id: "litellm/free-long", providerId: "llm", model: "free-long" },
   { id: "subscriptions/grok-4.6", providerId: "grok", model: "grok-4.6" },
+  { id: "deepseek-official/deepseek-v4-flash-vision-exp", providerId: "deepseek-official", model: "deepseek-v4-flash-vision-exp" },
   { id: "describe-image/glm-4v-flash", providerId: "describe-image", model: "glm-4v-flash" },
 ]);
 

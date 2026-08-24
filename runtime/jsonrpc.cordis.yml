@@ -16,6 +16,24 @@
     models:
       - id: !!js process.env.DSH_MODEL ?? 'deepseek-chat'
         contextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 128000)
+      - id: deepseek-v4-flash
+        contextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 128000)
+      - id: deepseek-v4-pro
+        contextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 128000)
+      - id: deepseek-v4-flash-vision-exp
+        name: DeepSeek-V4-Flash-Vision-Exp
+        contextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 128000)
+        inputModalities:
+          - text
+          - image
+
+# Durable image bytes for vision import. Session logs keep refs, not pixels.
+- id: attachment-local
+  name: '@deepseek-ai/dsh-attachment-local'
+
+# Admit {type:image, mediaType, data} from the SDK client into ImageAttachmentRef.
+- id: electronics-vision-admit
+  name: './admit-images.js'
 
 # Real multi-provider adapters. Secrets stay in the host credentials store.
 - id: credentials

@@ -34,7 +34,7 @@ Return `ImportCandidate[]` only. Do not confirm import. Do not invent SQL.
 
 ## Image
 
-Use the runtime vision path, then `import_validate_rows`. Copy MPN characters exactly.
+The user message includes the picture as an image block. Read that attached image, extract raw rows (MPN copied verbatim), then `import_validate_rows`. Do not guess from the filename. Keep quantity, date code, and price in separate fields. Copy MPN characters exactly.
 
 ## Hard rules
 

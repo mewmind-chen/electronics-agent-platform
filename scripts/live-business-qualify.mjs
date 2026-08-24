@@ -19,6 +19,8 @@ import {
 } from "../packages/model-policy/src/index.js";
 import { extractNamedTool } from "../apps/agent-api/src/harness-dispatch.js";
 import { CORDIS_PATH, processReady, resolveJsonrpcBin } from "../apps/agent-api/src/agent-runtime.js";
+import { importAgentInput } from "../apps/agent-api/src/runtime.js";
+import { visionImportPayload } from "./vision-fixture.mjs";
 
 const requireFromApi = createRequire(join(dirname(fileURLToPath(import.meta.url)), "../apps/agent-api/package.json"));
 const { DeepSeekHarness } = requireFromApi("@deepseek-ai/dsh-sdk-client");
@@ -32,6 +34,7 @@ const JOBS = {
   "litellm/free-strong": ["part", "company"],
   "opencode-go/kimi-k3": ["long"],
   "litellm/free-long": ["long"],
+  "deepseek-official/deepseek-v4-flash-vision-exp": ["vision"],
 };
 
 function timeout(ms, label) {
@@ -55,6 +58,9 @@ async function withTimeout(promise, ms, label) {
 }
 
 function promptFor(skill, payload) {
+  if (skill === "vision") {
+    return importAgentInput({ ...payload, role: "vision" });
+  }
   if (skill === "import" || skill === "long") {
     return [
       "Load skill import.",
@@ -98,13 +104,15 @@ async function runSkill(binding, skill, payload) {
             ? "Follow skill part. Call part_research. Return that JSON only."
             : skill === "company"
               ? "Follow skill company. Call company_research. Return that JSON only."
-              : "Follow skill import. Call official import_* tools. Return ImportCandidate JSON only.",
+              : skill === "vision"
+                ? "Follow skill import. The user attached a picture. Read it. Keep qty, dateCode and price in separate fields. Call import_validate_rows. Return ImportCandidate JSON only."
+                : "Follow skill import. Call official import_* tools. Return ImportCandidate JSON only.",
       },
     },
     cwd: root,
     provider: binding.providerId,
     model: binding.model,
-    maxTokens: skill === "long" ? 4096 : 2048,
+    maxTokens: skill === "long" || skill === "vision" ? 4096 : 2048,
   });
   try {
     const result = await withTimeout(
@@ -126,13 +134,15 @@ function scoreBusiness(entry, skills) {
   const reasons = [];
   let importPass = false;
   let longPass = false;
+  let visionPass = false;
   for (const item of skills) {
     tools.push(...(item.toolsCalled || []));
-    if (item.skill === "import") {
+    if (item.skill === "import" || item.skill === "vision") {
       const acc = acceptImportRegression(item.value || {});
       biz.import = acc.ok ? "pass" : "fail";
       importPass = acc.ok;
-      if (!acc.ok) reasons.push(`import:${acc.reason}`);
+      if (item.skill === "vision") visionPass = acc.ok;
+      if (!acc.ok) reasons.push(`${item.skill}:${acc.reason}`);
     } else if (item.skill === "long") {
       const acc = acceptLongImport(item.value || {});
       longPass = acc.ok;
@@ -148,7 +158,7 @@ function scoreBusiness(entry, skills) {
       if (!acc.ok) reasons.push(`company:${acc.reason}`);
     }
   }
-  return { biz, tools: [...new Set(tools)], reasons, importPass, longPass };
+  return { biz, tools: [...new Set(tools)], reasons, importPass, longPass, visionPass };
 }
 
 const only = (process.env.QUALIFY_ONLY || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -189,6 +199,8 @@ for (const id of Object.keys(JOBS)) {
           ? { company: "某某电子", steps: ["gys"] }
           : skill === "long"
             ? { kind: "offer", sourceType: "text", text: LONG_BOM_TEXT }
+          : skill === "vision"
+            ? visionImportPayload()
             : { kind: "offer", sourceType: "text", text: IMPORT_FIXTURE_TEXT };
     try {
       const out = await runSkill(binding, skill, payload);
@@ -203,16 +215,22 @@ for (const id of Object.keys(JOBS)) {
     toolCalling: scored.tools.length ? "pass" : prev.capabilities?.toolCalling || "fail",
     structuredLong: JOBS[id].includes("long") ? (scored.longPass ? "pass" : "fail") : prev.capabilities?.structuredLong || "unknown",
     harness: "pass",
-    vision: entry.roles.includes("vision") ? "unknown" : "n/a",
+    vision: entry.roles.includes("vision") ? (scored.visionPass ? "pass" : "fail") : "n/a",
   };
-  if (scored.importPass || scored.longPass) caps.json = "pass";
+  if (scored.importPass || scored.longPass || scored.visionPass) caps.json = "pass";
   if (scored.biz.part === "pass" || scored.biz.company === "pass") caps.json = "pass";
   const roleBizPass = entry.roles.includes("fast")
     ? scored.biz.import === "pass"
     : entry.roles.includes("long")
       ? scored.longPass
-      : scored.biz.part === "pass" && scored.biz.company === "pass";
-  const harnessOk = caps.harness === "pass" && caps.toolCalling === "pass" && caps.json === "pass";
+      : entry.roles.includes("vision")
+        ? scored.visionPass
+        : scored.biz.part === "pass" && scored.biz.company === "pass";
+  const harnessOk =
+    caps.harness === "pass" &&
+    caps.toolCalling === "pass" &&
+    caps.json === "pass" &&
+    (!entry.roles.includes("vision") || caps.vision === "pass");
   const verified = harnessOk; // hello-level verified may remain, business gate is separate
   merged.set(id, {
     ...prev,

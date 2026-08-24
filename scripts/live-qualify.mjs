@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 import { MODEL_CANDIDATES, providerBindings } from "../packages/model-policy/src/index.js";
 import { extractNamedTool } from "../apps/agent-api/src/harness-dispatch.js";
 import { CORDIS_PATH, processReady, resolveJsonrpcBin } from "../apps/agent-api/src/agent-runtime.js";
+import { importAgentInput } from "../apps/agent-api/src/runtime.js";
+import { visionImportPayload } from "./vision-fixture.mjs";
 
 const requireFromApi = createRequire(join(dirname(fileURLToPath(import.meta.url)), "../apps/agent-api/package.json"));
 const { DeepSeekHarness } = requireFromApi("@deepseek-ai/dsh-sdk-client");
@@ -31,6 +33,7 @@ const FIRST_BATCH = (process.env.QUALIFY_ONLY || "")
           "opencode-go/kimi-k3",
           "litellm/free-long",
           "subscriptions/grok-4.6",
+          "deepseek-official/deepseek-v4-flash-vision-exp",
           "describe-image/glm-4v-flash",
         ],
   );
@@ -98,6 +101,7 @@ async function smokeOne(entry, binding) {
   }
 
   const bin = resolveJsonrpcBin();
+  const vision = entry.roles.includes("vision");
   const harness = new DeepSeekHarness({
     launch: {
       command: process.execPath,
@@ -108,32 +112,40 @@ async function smokeOne(entry, binding) {
         DSH_CORDIS_CONFIG: CORDIS_PATH,
         DSH_CWD: root,
         DSH_SESSION_ROOT: join(root, ".dsh-platform/sessions"),
-        DSH_SYSTEM_PROMPT:
-          "You are the electronics live qualifier. Call the named official tool and return only that JSON.",
+        DSH_SYSTEM_PROMPT: vision
+          ? "Follow skill import. The user attached a picture. Read that image. Keep qty, dateCode and price in separate fields. Call import_validate_rows. Return ImportCandidate JSON only."
+          : "You are the electronics live qualifier. Call the named official tool and return only that JSON.",
       },
     },
     cwd: root,
     provider: binding.providerId,
     model: binding.model,
-    maxTokens: 1024,
+    maxTokens: vision ? 4096 : 1024,
   });
 
   try {
-    const prompt =
-      "Load skill hello. Call hello_ping with token live-qualify. Return the tool JSON unchanged as a JSON object.";
-    const result = await withTimeout(harness.run(prompt, { sessionId: `qual-${entry.id}-${Date.now()}` }), 90_000, "harness timeout");
+    const prompt = vision
+      ? importAgentInput({ ...visionImportPayload(), role: "vision" })
+      : "Load skill hello. Call hello_ping with token live-qualify. Return the tool JSON unchanged as a JSON object.";
+    const result = await withTimeout(harness.run(prompt, { sessionId: `qual-${entry.id}-${Date.now()}` }), vision ? 120_000 : 90_000, "harness timeout");
     out.checks.harness = true;
-    const extracted = extractNamedTool(result, "hello_ping");
-    const ping = extracted?.value || null;
-    out.checks.tool = Boolean(ping && (ping.plugin === "electronics-hello" || ping.token === "live-qualify"));
-    out.checks.json = Boolean(ping && ping.ok === true);
+    const extracted = extractNamedTool(result, vision ? "import_" : "hello_ping");
+    const payload = extracted?.value || null;
+    if (vision) {
+      out.checks.tool = Boolean(
+        extracted?.toolsCalled?.some((name) => /import_(validate|classify|normalize)/.test(String(name))),
+      );
+      out.checks.json = Boolean(payload && Array.isArray(payload.candidates));
+      out.checks.vision = Boolean(out.checks.harness && out.checks.tool && out.checks.json);
+    } else {
+      out.checks.tool = Boolean(payload && (payload.plugin === "electronics-hello" || payload.token === "live-qualify"));
+      out.checks.json = Boolean(payload && payload.ok === true);
+    }
     out.checks.long = Boolean(result?.finalResponse && String(result.finalResponse).length >= 20);
-    if (entry.roles.includes("vision")) out.checks.vision = false;
     out.capabilities = scoreCaps(out.checks);
-    const required = entry.roles.includes("vision")
+    const required = vision
       ? ["json", "toolCalling", "harness", "vision"]
       : ["json", "toolCalling", "harness"];
-    const map = { toolCalling: "tool" };
     const passed = required.every((cap) => out.capabilities[cap] === "pass" || (cap === "toolCalling" && out.checks.tool));
     out.verified = passed && out.checks.harness && out.checks.tool && out.checks.json;
     out.pool = out.verified ? "production" : "candidate";

@@ -49,16 +49,59 @@ export function resolveExecutionMode(input) {
   return parseExecutionMode(input, "request", []);
 }
 
+export function isVisionImport(input = {}) {
+  return (
+    input.role === "vision" ||
+    String(input.sourceType || "").toLowerCase() === "image" ||
+    String(input.mime || "").toLowerCase().startsWith("image/")
+  );
+}
+
+export function canonicalImageBase64(data) {
+  const raw = String(data || "").replace(/\s+/g, "");
+  if (!raw) return "";
+  return Buffer.from(raw, "base64").toString("base64");
+}
+
+export function imageMediaType(input = {}) {
+  const mime = String(input.mime || "").toLowerCase();
+  if (mime === "image/png" || mime === "image/jpeg" || mime === "image/webp" || mime === "image/gif") return mime;
+  const name = String(input.filename || "").toLowerCase();
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".gif")) return "image/gif";
+  return "image/png";
+}
+
 function importPrompt(input) {
+  const payload = { ...input };
+  if (isVisionImport(payload) && payload.fileBase64) {
+    payload.fileBase64 = "[attached image]";
+  }
+  const image = isVisionImport(input);
+  const pathHint = image
+    ? "The user message includes the picture as an image block. Read that attached image, extract raw rows with MPN copied verbatim, keep qty/dateCode/price in separate fields, then import_validate_rows."
+    : "Table: import_table_preview then import_apply_mapping. Do not invent a regex header matcher. Unstructured text: import_normalize_text, extract raw rows with MPN copied verbatim, then import_validate_rows.";
   return [
     "Load skill import.",
     "Convert this electronics import payload into ImportCandidate JSON only.",
-    "Table: import_table_preview then import_apply_mapping. Do not invent a regex header matcher.",
-    "Unstructured text: import_normalize_text, extract raw rows with MPN copied verbatim, then import_validate_rows.",
+    pathHint,
     "Never write a business database. Never return selected/duplicate/confirmImport.",
     "Return only JSON {candidates, mapping, usedAi}.",
-    `Payload: ${JSON.stringify(input)}`,
+    `Payload: ${JSON.stringify(payload)}`,
   ].join(" ");
+}
+
+/** String prompt, or text+encoded-image blocks for vision import. */
+export function importAgentInput(input) {
+  const text = importPrompt(input);
+  if (!isVisionImport(input) || !input?.fileBase64) return text;
+  const data = canonicalImageBase64(input.fileBase64);
+  if (!data) return text;
+  return [
+    { type: "text", text },
+    { type: "image", mediaType: imageMediaType(input), data },
+  ];
 }
 
 function partPrompt(input) {
@@ -115,7 +158,7 @@ async function officialRunAgent(job, agentRuntime) {
   const sessionRoot = join(root, ".dsh-platform/sessions");
   const prompts = {
     hello: `Ping the electronics platform. Load skill hello if needed. Call hello_ping with token ${JSON.stringify(job.token)}. Return the tool JSON unchanged.`,
-    import: importPrompt(job.input),
+    import: importAgentInput(job.input),
     part: partPrompt(job.input),
     company: companyPrompt(job.input),
   };
@@ -309,7 +352,7 @@ export function createRuntime(overrides = {}) {
         return withCoreMeta(core, mode);
       }
 
-      if (core.reason === "vision_required" || input.sourceType === "image" || String(input.mime || "").startsWith("image/")) {
+      if (core.reason === "vision_required" || isVisionImport(input)) {
         const vision = await tryAgent({ kind: "import", input: { ...input, role: "vision" }, signal: ctx.signal }, mode);
         if (vision.error === AGENT_UNAVAILABLE) {
           return {
@@ -323,6 +366,36 @@ export function createRuntime(overrides = {}) {
             modelRoute: null,
           };
         }
+        let out = {
+          ok: vision.ok !== false,
+          candidates: vision.candidates || [],
+          mapping: vision.mapping ?? null,
+          usedAi: Boolean(vision.usedAi),
+          needsAgent: false,
+          viaHarness: Boolean(vision.viaHarness),
+          route: vision.route,
+          mode,
+          toolsCalled: vision.toolsCalled || [],
+          reason: vision.reason,
+          preview: core.preview,
+          textPreview: core.textPreview,
+          modelRoute: vision.modelRoute || null,
+        };
+        const escalate = nextEscalationRole("import", out, out.modelRoute?.role || "vision");
+        if (escalate && mode !== "core") {
+          const again = await tryAgent({ kind: "import", input: { ...input, role: escalate }, signal: ctx.signal }, mode);
+          if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
+            out = {
+              ...out,
+              ...again,
+              candidates: again.candidates || out.candidates,
+              usedAi: true,
+              viaHarness: Boolean(again.viaHarness),
+              modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : out.modelRoute,
+            };
+          }
+        }
+        return out;
       }
       const agent = await tryAgent({ kind: "import", input, signal: ctx.signal }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {

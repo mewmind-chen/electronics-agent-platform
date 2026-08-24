@@ -40,6 +40,11 @@ test("import acceptor enforces TPS54560DDAR regression", async () => {
     candidates: [{ kind: "offer", mpn: "TPS54560DDAR", qty: 10000, dateCode: "2418", priceAmount: 1.15, priceCurrency: "USD" }],
   });
   assert.equal(good.ok, true);
+  const visionMapping = acceptImportRegression({
+    candidates: [{ kind: "offer", mpn: "TPS54560DDAR", qty: 10000, dateCode: "2418", priceAmount: 1.15, priceCurrency: "USD" }],
+    mapping: { mpn: "TPS54560DDAR", qty: "10K", dateCode: "2418", price: "$1.15" },
+  });
+  assert.equal(visionMapping.ok, true);
   const swapped = acceptImportRegression({
     candidates: [{ kind: "offer", mpn: "TPS54560DDAR", qty: 2418, dateCode: "10K", priceAmount: 10000 }],
   });
@@ -71,7 +76,8 @@ test("fast/reasoning/vision/long route only after qualification", () => {
   const router = createModelRouter({ registry: productionFixture() });
   assert.equal(router.resolve({ kind: "import", sourceType: "text" }).model, "deepseek-v4-flash");
   assert.equal(router.resolve({ kind: "part" }).model, "deepseek-v4-pro");
-  assert.equal(router.resolve({ kind: "import", sourceType: "image" }).model, "glm-4v-flash");
+  assert.equal(router.resolve({ kind: "import", sourceType: "image" }).model, "deepseek-v4-flash-vision-exp");
+  assert.equal(router.resolve({ kind: "import", sourceType: "image" }).provider, "deepseek-official");
   assert.equal(router.resolve({ kind: "import", sourceType: "pdf" }).model, "kimi-k3");
 });
 
@@ -135,6 +141,14 @@ test("bindings expose Harness identities without secrets", () => {
   assert.ok(rows.find((b) => b.id === "subscriptions/grok-4.6" && b.providerId === "grok" && b.auth === "oauth-subscription"));
   assert.ok(rows.find((b) => b.id === "litellm/free-fast" && b.providerId === "llm"));
   assert.ok(rows.find((b) => b.id === "opencode-go/deepseek-v4-flash" && b.providerId === "opencode-go"));
+  assert.ok(
+    rows.find(
+      (b) =>
+        b.id === "deepseek-official/deepseek-v4-flash-vision-exp" &&
+        b.providerId === "deepseek-official" &&
+        b.availability === "bound",
+    ),
+  );
   assert.ok(rows.every((b) => !("apiKey" in b) && !("credentialEnv" in b)));
 });
 

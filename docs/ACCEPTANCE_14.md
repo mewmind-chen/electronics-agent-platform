@@ -10,7 +10,7 @@
 
 它不宣称：
 
-- Vision / Long Import 已具备生产能力
+- Long Import 已具备生产能力（产品明确不做；PDF / Word 继续 `agent_unavailable`）
 - 所有绑定模型都已进入 production 池
 - 三个仓库的未跟踪文件、Docker 镜像、远端 CI 都已收口
 - 把 DeepSeek Harness 整层换成另一套 Agent Runtime 已经做过一次真替换
@@ -57,10 +57,10 @@
 
 | 口径 | 结果 |
 |---|---|
-| catalog 共 9 个绑定模型 | 9 |
-| `verified=true` | **7/9** |
-| `pool=production` | **4/9**：`deepseek-v4-flash`、`deepseek-v4-pro`、`qwen3.7-max`、`litellm/free-strong` |
-| 未进 production | `free-fast`（import harness timeout）、`kimi-k3` / `free-long`（long: 0 rows / timeout）、`grok-4.6`（smoke 不完整）、`glm-4v-flash`（vision / harness 未过） |
+| catalog 共 10 个绑定模型 | 10（含 `deepseek-v4-flash-vision-exp`） |
+| `verified=true` | 以 `tests/phase82/live-results.json` 为准 |
+| `pool=production` | **5/10**：原 4 个 reasoning/fast + `deepseek-v4-flash-vision-exp` |
+| 未进 production | `free-fast`（import harness timeout）、`kimi-k3` / `free-long`（long: 0 rows / timeout）、`grok-4.6`（smoke 不完整）、`glm-4v-flash`（plugin backend） |
 
 §37 第 1 条的门槛是「新仓库实际运行官方 Harness」，不是「九个模型全部生产可用」。后者见文末。
 
@@ -263,17 +263,17 @@ Platform 的 phase5 / phase8 证明的是 **Agent API 自己的 mode/fallback**�
 
 这些**不否决**第 37 节签字，但也不能用本文件宣布「整体落地完成」：
 
-1. Vision / Long Import 生产能力：`glm-4v-flash` 未过，`kimi-k3` / `free-long` long 路径超时。
-2. 模型资格：9 个绑定里只有 4 个 production。
+1. Long Import 明确不做：`kimi-k3` / `free-long` 保持 candidate；PDF / Word / 长 BOM 继续 `agent_unavailable`。Vision 已由 `deepseek-official/deepseek-v4-flash-vision-exp` 进入 production。
+2. 模型资格：10 个绑定里 **5** 个 production。不要求凑满。
 3. Platform 根目录未跟踪文件（禁止误提交）：`package-lock.json`、`HANDOFF.md`、`eslint.config.mjs/`。
-4. 本批 Radar / Workbench / 本文件的工作区改动尚未提交推送。未推送不算交付。
+4. 本批 Radar / Workbench / Platform Vision 尚未全部推送。未推送不算交付。
 
 ## 如何复验
 
 ```bash
 # Platform
 cd electronics-agent-platform && npm test
-# 期望 115/115
+# 期望含 vision 相关用例通过
 
 # Radar
 cd xinghao-radar && npm test && npm run typecheck
