@@ -1,0 +1,60 @@
+{
+  "fixtureVersion": 1,
+  "sourceKind": "real-business-xlsx-redacted",
+  "headerRow": 2,
+  "headers": [
+    "Doc num",
+    "Doc line num",
+    "Requested p/n",
+    "Requested Manufacturer",
+    "Requested quantity",
+    "Target $",
+    "Target DC",
+    "Lead Time, weeks",
+    "Comment",
+    "Quoted p/n",
+    "Quoted quantity",
+    "Price, usd",
+    "Quoted Manufacturer",
+    "DC",
+    "Lead time, weeks",
+    "Comment"
+  ],
+  "sampleRows": [
+    {
+      "requestedMpn": "BC817-25LT1G",
+      "requestedQty": 3000,
+      "quotedMpn": "BC817-25LT1G",
+      "quotedQty": 3000,
+      "manufacturer": "onsemi",
+      "dateCode": "26+",
+      "leadTimeWeeks": 6
+    },
+    {
+      "requestedMpn": "SMF36A-E3-08",
+      "requestedQty": 3000,
+      "quotedMpn": "SMF36A-E3-08",
+      "quotedQty": 3000,
+      "manufacturer": "Vishay",
+      "dateCode": "22+",
+      "leadTimeWeeks": 8
+    },
+    {
+      "requestedMpn": "CD4050BPWR",
+      "requestedQty": 2000,
+      "quotedMpn": "CD4050BPWR",
+      "quotedQty": 2000,
+      "manufacturer": "TI",
+      "dateCode": "25+",
+      "leadTimeWeeks": 6
+    }
+  ],
+  "redactedFields": [
+    "documentNumber",
+    "documentLineNumber",
+    "targetPrice",
+    "quotedPrice",
+    "customerIdentity",
+    "freeTextComments"
+  ]
+}

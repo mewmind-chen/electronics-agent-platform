@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "acceptedAt": "2026-08-24T15:05:00.000Z",
+  "overall": "pass",
+  "commits": {
+    "platform": "d3a4b575c287f516ad42c92e7120a5b3f445efe7",
+    "radar": "6b806f5496b0fafa043da84ca738692d470cbd69",
+    "workbench": "1f2c79b848d650467e1e93e11b993d0189711c4c"
+  },
+  "environment": {
+    "platformUrl": "http://127.0.0.1:8787",
+    "radarUrl": "http://127.0.0.1:8080",
+    "workbenchUrl": "http://127.0.0.1:8083",
+    "dshVersion": "0.1.0-rc.6",
+    "credentialsRecorded": false,
+    "rawBusinessWorkbookCommitted": false
+  },
+  "matrix": {
+    "imports": [
+      {
+        "id": "R1-real-xlsx",
+        "status": "pass",
+        "entry": "Platform API",
+        "httpStatus": 200,
+        "durationMs": 49647,
+        "sourceBytes": 33414,
+        "headerRow": 2,
+        "previewRowsSentToAgent": 8,
+        "candidateCount": 145,
+        "viaHarness": true,
+        "usedAi": true,
+        "semanticMappingValidated": true,
+        "fullRowsAppliedDeterministically": true,
+        "rawBytesRelayedThroughModel": false,
+        "mappingTargets": ["mpn", "qty", "price", "brand", "dateCode", "lt"]
+      },
+      {
+        "id": "R2-controlled-text",
+        "status": "pass",
+        "entry": "Radar UI",
+        "candidateCount": 1,
+        "route": "controlled-format",
+        "mpns": ["TPS54560DDAR"],
+        "humanPreviewRequired": true
+      },
+      {
+        "id": "R3-multi-text",
+        "status": "pass",
+        "entry": "Radar UI -> Platform API",
+        "candidateCount": 2,
+        "route": "AI 识别（Platform）",
+        "mpns": ["BC817-25LT1G", "CD4050BPWR"],
+        "dateCodesCaptured": true,
+        "sharedLeadTimeCapturedByPlatform": true,
+        "missingExplicitFactsWarnInsteadOfDisappearing": true
+      },
+      {
+        "id": "R4-image",
+        "status": "pass",
+        "entry": "Harness Plugin -> Platform API",
+        "candidateCount": 1,
+        "mpns": ["TPS54560DDAR"],
+        "viaHarness": true,
+        "modelRole": "vision"
+      },
+      {
+        "id": "R5-radar-confirm",
+        "status": "pass",
+        "entry": "Radar UI",
+        "constraintBlockedMissingChannel": true,
+        "writeSucceededOnlyAfterHumanSuppliedChannel": true,
+        "platformWroteBusinessDatabase": false
+      }
+    ],
+    "parts": [
+      {
+        "id": "P1-P3-concurrent",
+        "status": "pass",
+        "count": 3,
+        "structuredResults": 3,
+        "falseArgumentEchoes": 0,
+        "uniqueSessionIds": 3,
+        "viaHarness": true,
+        "unknownWithoutEvidence": true
+      },
+      {
+        "id": "P-context-variation",
+        "status": "pass",
+        "sameMpn": "TPS54560DDAR",
+        "stockAndOpenAction": "内部有货且询价活跃：优先消化库存、按询报价",
+        "noStockOpenAction": "内部无货但询价多：评估外购，不盲目备货",
+        "publicVerdictStayedUnknown": true,
+        "internalContextStayedOutsideEvidence": true
+      }
+    ],
+    "companies": [
+      {
+        "id": "C1-C3-concurrent",
+        "status": "pass",
+        "count": 3,
+        "structuredResults": 3,
+        "uniqueSessionIds": 3,
+        "viaHarness": true,
+        "unknownWithoutEvidence": true,
+        "inventedContacts": false
+      }
+    ],
+    "plugin": [
+      {
+        "id": "H-plugin-four-way",
+        "status": "pass",
+        "part": true,
+        "textImport": true,
+        "imageImport": true,
+        "company": true,
+        "allViaSamePlatform": true,
+        "rawJsonDumpedToUser": false
+      }
+    ],
+    "failures": [
+      {
+        "id": "F1-auth",
+        "status": "pass",
+        "healthStatus": 200,
+        "unauthenticatedBusinessStatus": 401,
+        "error": "unauthorized"
+      },
+      {
+        "id": "F2-contract",
+        "status": "pass",
+        "httpStatus": 422,
+        "error": "contract_error"
+      },
+      {
+        "id": "F3-agent-unavailable",
+        "status": "pass",
+        "httpStatus": 200,
+        "ok": false,
+        "error": "agent_unavailable",
+        "viaHarness": false,
+        "usedAi": false
+      }
+    ],
+    "humanBoundaries": [
+      {
+        "id": "B1-radar-confirm",
+        "status": "pass",
+        "previewBeforeWrite": true,
+        "businessConstraintOwnedByRadar": true,
+        "finalWriteOwnedByRadar": true
+      },
+      {
+        "id": "B2-workbench-corrected",
+        "status": "pass",
+        "platformVerdict": "未知",
+        "correctedJsonPersistedLocally": true,
+        "platformReceivedCorrection": false,
+        "finalDecisionOwnedByHumanAndWorkbench": true
+      }
+    ]
+  },
+  "fixedFindings": [
+    {
+      "finding": "Excel bytes were relayed through the model and timed out",
+      "resolution": "bounded preview + validated semantic mapping + deterministic full-row apply",
+      "commit": "d3a4b57"
+    },
+    {
+      "finding": "Part tool returned non-lossless undefined fields and arguments were misread as output",
+      "resolution": "lossless DSH boundaries + strict output-shape extraction",
+      "commit": "d3a4b57"
+    },
+    {
+      "finding": "Concurrent official Harness sessions could share millisecond IDs",
+      "resolution": "UUID-backed session IDs",
+      "commit": "d3a4b57"
+    },
+    {
+      "finding": "Explicit DC or shared lead time could disappear silently",
+      "resolution": "skill instruction plus deterministic missing-fact warnings",
+      "commit": "d3a4b57"
+    },
+    {
+      "finding": "Workbench Vite 8 optimized Playwright native fsevents as browser JavaScript",
+      "resolution": "server external + dependency optimizer exclusion",
+      "commit": "0ef4ba7"
+    },
+    {
+      "finding": "Workbench report view crashed outside QueryClientProvider",
+      "resolution": "stable root QueryClientProvider and regression gate",
+      "commit": "1f2c79b"
+    }
+  ],
+  "acceptedDegradations": [
+    {
+      "condition": "Public connector credentials or membership cookies are absent",
+      "behavior": "evidence remains empty, public verdict remains unknown, UI identifies the degraded source",
+      "businessSafety": "no branded claim, contact, hotness, shortage, or price direction is invented"
+    }
+  ],
+  "verification": {
+    "platformTests": "160/160",
+    "platformCi": "success",
+    "radarTests": "232/232",
+    "radarTypecheck": "pass",
+    "radarBuild": "pass",
+    "workbenchTests": "160/160 + 38/38",
+    "workbenchTypecheck": "pass",
+    "workbenchBuild": "pass"
+  }
+}
