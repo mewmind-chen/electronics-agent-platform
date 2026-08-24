@@ -36,13 +36,6 @@ export async function researchPart(input, ctx = {}) {
     const result = await runLookupStep({ query: mpn, step, kind: "part" }, ctx);
     stepResults.push(result);
     if (!result.ok) {
-      evidence.push({
-        id: nid("evi"),
-        sourceKey: step === "intel" ? "intel" : step,
-        title: `${mpn} @ ${step} failed`,
-        trust: "low",
-        fields: { error: result.error },
-      });
       continue;
     }
     if (result.identity) identity = mergeIdentity(identity, result.identity);

@@ -52,13 +52,6 @@ export async function researchCompany(input, ctx = {}) {
       ctx,
     );
     if (!result.ok) {
-      evidence.push({
-        id: nid("evi"),
-        sourceKey: step === "intel" ? "intel" : step,
-        title: `${company} @ ${step} failed`,
-        trust: "low",
-        fields: { error: result.error },
-      });
       continue;
     }
     if (result.companies?.length) {
