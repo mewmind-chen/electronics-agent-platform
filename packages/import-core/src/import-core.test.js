@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { applyMappingToTable } from "./mapping.js";
 import { extractImport } from "./extract.js";
-import { validateExtractedRow } from "./validators.js";
+import { validateExtractedRow, validateExtractedRows } from "./validators.js";
 import { parseQty } from "@electronics/domain";
 
 test("10K is 10000 and model qty 1000 becomes a warning", () => {
@@ -31,6 +31,37 @@ test("MPN is not rewritten; missing provenance is a warning", () => {
   assert.equal(row.ok, true);
   assert.equal(row.value.mpn, "STM32F103C8T6");
   assert.ok(row.value.warnings.some((w) => w.code === "mpn_provenance"));
+});
+
+test("explicit date-code and lead-time facts cannot disappear without warnings", () => {
+  const result = validateExtractedRows(
+    [
+      { kind: "offer", mpn: "BC817-25LT1G", qtyRaw: "3000", priceAmount: 0.02 },
+      { kind: "offer", mpn: "CD4050BPWR", qtyRaw: "2000", priceAmount: 0.18 },
+    ],
+    {
+      sourceText: "BC817-25LT1G 3000pcs DC26+ USD0.02；CD4050BPWR 2000pcs DC25+ USD0.18，统一交期6周。",
+    },
+  );
+
+  assert.equal(result.ok, true);
+  for (const candidate of result.candidates) {
+    assert.equal(candidate.dateCode, null);
+    assert.equal(candidate.leadTimeText, null);
+    assert.ok(candidate.warnings.some((warning) => warning.code === "date_code_missing"));
+    assert.ok(candidate.warnings.some((warning) => warning.code === "lead_time_missing"));
+  }
+});
+
+test("coverage warnings are absent when explicit facts were captured", () => {
+  const result = validateExtractedRows(
+    [{ kind: "offer", mpn: "BC817-25LT1G", dateCode: "26+", leadTimeText: "6周" }],
+    { sourceText: "BC817-25LT1G DC26+ 交期6周" },
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(result.candidates[0].warnings.some((warning) => warning.code === "date_code_missing"), false);
+  assert.equal(result.candidates[0].warnings.some((warning) => warning.code === "lead_time_missing"), false);
 });
 
 test("Excel mapping bulk-parses after Agent mapping, not headerKey regex", () => {

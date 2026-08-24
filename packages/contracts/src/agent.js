@@ -22,6 +22,7 @@ export const AGENT_TOOLS = Object.freeze({
   import: Object.freeze([
     "import_classify",
     "import_table_preview",
+    "import_validate_mapping",
     "import_apply_mapping",
     "import_normalize_text",
     "import_validate_rows",

@@ -181,57 +181,56 @@ export function extractNamedTool(result, toolName) {
     }
     for (const v of Object.values(value)) collectNames(v, depth + 1);
   };
-  const visit = (value, depth = 0) => {
+  const looksLikeOutput = (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    if (toolName === "import_") {
+      return Array.isArray(value.candidates) || (value.ok === true && value.mapping && typeof value.mapping === "object");
+    }
+    if (toolName === "part_research") {
+      return typeof value.ok === "boolean" && typeof value.mpn === "string" && ("verdict" in value || "errors" in value);
+    }
+    if (toolName === "company_research") {
+      return typeof value.ok === "boolean" && typeof value.company === "string" && ("verdict" in value || "errors" in value);
+    }
+    if (toolName === "hello_ping") {
+      return value.plugin === "electronics-hello" || value.runtime === "deepseek-harness" || value.token === "live-qualify";
+    }
+    return false;
+  };
+  const visit = (value, depth = 0, key = "") => {
     if (depth > 8 || value == null) return null;
+    if (["arguments", "args", "argumentsDelta"].includes(key)) return null;
+    const direct = coerceJsonObject(value);
+    if (looksLikeOutput(direct)) return direct;
     if (typeof value === "object") {
       rememberName(value);
       const tool = value.name ?? value.toolName ?? value.tool ?? "";
       if (String(tool).includes(toolName)) {
         const raw = value.output ?? value.result ?? value.value ?? value.content ?? value.text ?? null;
-        const parsed = coerceJsonObject(raw) || coerceJsonObject(value);
-        if (parsed) return parsed;
+        const parsed = coerceJsonObject(raw);
+        if (looksLikeOutput(parsed)) return parsed;
       }
     }
     if (Array.isArray(value)) {
       for (const item of value) {
-        const hit = visit(item, depth + 1);
+        const hit = visit(item, depth + 1, key);
         if (hit) return hit;
       }
       return null;
     }
     if (typeof value === "object") {
-      for (const v of Object.values(value)) {
-        const hit = visit(v, depth + 1);
+      for (const [childKey, v] of Object.entries(value)) {
+        const hit = visit(v, depth + 1, childKey);
         if (hit) return hit;
       }
-    }
-    const parsed = coerceJsonObject(value);
-    if (
-      parsed &&
-      (parsed.plugin === "electronics-hello" ||
-        parsed.token === "live-qualify" ||
-        parsed.candidates ||
-        parsed.mpn ||
-        parsed.company ||
-        (parsed.ok === true && parsed.runtime === "deepseek-harness"))
-    ) {
-      return parsed;
     }
     return null;
   };
   collectNames(result?.finalResponse);
   for (const ev of events) collectNames(ev);
   for (const n of result?.notifications ?? []) collectNames(n);
-  const fromText = visit(result?.finalResponse) || coerceJsonObject(result?.finalResponse);
-  if (
-    fromText &&
-    (fromText.plugin === "electronics-hello" ||
-      fromText.token === "live-qualify" ||
-      fromText.candidates ||
-      fromText.mpn ||
-      fromText.company ||
-      (fromText.ok === true && fromText.runtime === "deepseek-harness"))
-  ) {
+  const fromText = visit(result?.finalResponse);
+  if (fromText) {
     return { value: fromText, toolsCalled: names.length ? names : [toolName] };
   }
   for (const ev of events) {

@@ -23,10 +23,11 @@ export function apply(ctx) {
         },
       },
       async execute(args) {
-        return researchPart(
+        const result = await researchPart(
           { mpn: args.mpn, goal: args.goal, steps: args.steps },
           { firecrawlKey: args.firecrawlKey },
         );
+        return JSON.parse(JSON.stringify(result));
       },
     }),
   );

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createRuntime } from "../../apps/agent-api/src/runtime.js";
+import { createRuntime, createSessionId } from "../../apps/agent-api/src/runtime.js";
 import { extractNamedTool, loadOfficialTools } from "../../apps/agent-api/src/harness-dispatch.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -13,12 +13,26 @@ const req = createRequire(import.meta.url);
 
 test("official plugins register defineTool objects used by the runtime", async () => {
   const tools = loadOfficialTools();
-  for (const name of ["hello_ping", "import_normalize_text", "import_validate_rows", "part_research", "company_research"]) {
+  for (const name of ["hello_ping", "import_normalize_text", "import_validate_mapping", "import_validate_rows", "part_research", "company_research"]) {
     const tool = tools.get(name);
     assert.ok(tool, name);
     assert.equal(typeof tool.execute, "function");
     assert.equal(tool.name, name);
   }
+});
+
+test("official part tool returns lossless JSON when optional business fields are absent", async () => {
+  const tool = loadOfficialTools().get("part_research");
+  const result = await tool.execute({ mpn: "NE555P", steps: [] });
+  assert.deepEqual(result, JSON.parse(JSON.stringify(result)));
+  assert.equal(result.ok, true);
+  assert.equal(result.mpn, "NE555P");
+});
+
+test("official Harness session ids cannot collide within the same millisecond", () => {
+  const ids = new Set(Array.from({ length: 100 }, () => createSessionId("company")));
+  assert.equal(ids.size, 100);
+  assert.ok([...ids].every((id) => id.startsWith("company-")));
 });
 
 test("test stub may execute official tools but must not claim viaHarness/usedAi", async () => {
@@ -151,4 +165,37 @@ test("extractNamedTool keeps import tool names when JSON is already in finalResp
   );
   assert.equal(extracted.value.candidates[0].mpn, "TPS54560DDAR");
   assert.equal(extracted.toolsCalled.includes("import_validate_rows"), true);
+});
+
+test("extractNamedTool never mistakes failed tool-call arguments for a result", () => {
+  const extracted = extractNamedTool(
+    {
+      finalResponse: "part_research failed: value is not lossless JSON",
+      events: [
+        {
+          type: "tool/call",
+          data: {
+            name: "part_research",
+            arguments: '{"mpn":"TPS54560DDAR","goal":"research"}',
+          },
+        },
+        {
+          type: "tool/result",
+          data: {
+            message: {
+              content: [
+                {
+                  type: "tool-result",
+                  content: [{ type: "text", text: 'Error: tool "part_research" returned invalid output' }],
+                  isError: true,
+                },
+              ],
+            },
+          },
+        },
+      ],
+    },
+    "part_research",
+  );
+  assert.equal(extracted, null);
 });

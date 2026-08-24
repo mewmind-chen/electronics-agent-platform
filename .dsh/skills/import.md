@@ -14,23 +14,29 @@ Return `ImportCandidate[]` only. Do not confirm import. Do not invent SQL.
 |---|---|
 | `import_classify` | first, to see table vs text vs image |
 | `import_table_preview` | Excel/CSV: read header + 3–10 sample rows |
+| `import_validate_mapping` | validate a mapping when Platform already supplied a bounded preview |
 | `import_apply_mapping` | after you decide `{header → target}` |
 | `import_normalize_text` | chat / unstructured text cleanup |
 | `import_validate_rows` | after you extract raw rows from unstructured text or a picture |
 
 ## Table (Excel / CSV)
 
-1. `import_table_preview`.
-2. Look at the header and sample. Map once, for example `P/N → mpn`, `Available → qty`.
-3. `import_apply_mapping` with that mapping. The program parses every remaining row.
-4. Do **not** write a regex header matcher. Do **not** call a homemade heuristic parser.
+When the request already contains `preview`:
+
+1. Look at `preview.header` and `preview.sample`. Map once, for example `P/N → mpn`, `Available → qty`.
+2. Call `import_validate_mapping` with the exact preview header and `{columns:[{header,target}]}`.
+3. Return that tool JSON unchanged. The Platform keeps the original bytes and deterministically applies the accepted mapping to every row.
+4. Never request, repeat, or relay file bytes through the model context.
+
+For a direct Harness session without a supplied preview, use `import_table_preview`, then `import_apply_mapping`.
+Do **not** write a regex header matcher or call a homemade heuristic parser.
 
 ## Unstructured text
 
 1. `import_normalize_text`.
-2. You extract raw rows (MPN copied verbatim).
+2. You extract raw rows (MPN copied verbatim). Keep quantity, date code, price, and lead time separate. Apply explicit shared/unified facts, such as one common lead time, to every affected row.
 3. `import_validate_rows` with `sourceText` so qty/price/MPN are checked.
-4. If the validator reports `qty_conflict` or `mpn_provenance`, keep the warning. Do not silently rewrite.
+4. Keep every validator warning, including `qty_conflict`, `mpn_provenance`, `date_code_missing`, and `lead_time_missing`. Do not silently rewrite or hide a source fact that was not captured.
 
 ## Image
 

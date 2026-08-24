@@ -10,6 +10,7 @@
  * Production never labels stub output as viaHarness / usedAi.
  */
 import { DeepSeekHarness } from "@deepseek-ai/dsh-sdk-client";
+import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseExecutionMode } from "@electronics/contracts";
@@ -75,21 +76,49 @@ export function imageMediaType(input = {}) {
 
 function importPrompt(input) {
   const payload = { ...input };
+  const tableMapping = Boolean(payload.preview && (payload.sourceType === "excel" || payload.sourceType === "csv"));
   if (isVisionImport(payload) && payload.fileBase64) {
     payload.fileBase64 = "[attached image]";
+  }
+  if (tableMapping) {
+    delete payload.fileBase64;
+    delete payload.text;
   }
   const image = isVisionImport(input);
   const pathHint = image
     ? "The user message includes the picture as an image block. Read that attached image, extract raw rows with MPN copied verbatim, keep qty/dateCode/price in separate fields, then import_validate_rows."
-    : "Table: import_table_preview then import_apply_mapping. Do not invent a regex header matcher. Unstructured text: import_normalize_text, extract raw rows with MPN copied verbatim, then import_validate_rows.";
+    : tableMapping
+      ? "The Platform already read the table bytes and supplied a bounded preview. Infer one semantic column mapping, then call import_validate_mapping with preview.header and {columns:[{header,target}]}. Do not request or relay file bytes. The Platform will deterministically apply the accepted mapping to every original row."
+      : "Unstructured text: import_normalize_text, extract raw rows with MPN copied verbatim, keep qty/dateCode/price/leadTimeText separate, apply explicit shared or unified facts to every affected row, then import_validate_rows.";
   return [
     "Load skill import.",
     "Convert this electronics import payload into ImportCandidate JSON only.",
     pathHint,
     "Never write a business database. Never return selected/duplicate/confirmImport.",
-    "Return only JSON {candidates, mapping, usedAi}.",
+    tableMapping ? "Return the import_validate_mapping JSON unchanged." : "Return only JSON {candidates, mapping, usedAi}.",
     `Payload: ${JSON.stringify(payload)}`,
   ].join(" ");
+}
+
+export function prepareImportAgentInput(input, core) {
+  if (core?.reason !== "table_mapping_required" || !core.preview) return input;
+  return {
+    kind: input.kind,
+    sourceType: input.sourceType,
+    filename: input.filename,
+    mime: input.mime,
+    mode: input.mode,
+    role: input.role,
+    modelMode: input.modelMode,
+    quality: input.quality,
+    provider: input.provider,
+    model: input.model,
+    preview: core.preview,
+  };
+}
+
+export function createSessionId(kind) {
+  return `${String(kind || "agent")}-${Date.now()}-${randomUUID()}`;
 }
 
 /** String prompt, or text+encoded-image blocks for vision import. */
@@ -201,7 +230,7 @@ async function officialRunAgent(job, agentRuntime) {
         removeAbort = () => job.signal.removeEventListener("abort", abort);
       }
     });
-    const result = await Promise.race([harness.run(prompts[job.kind], { sessionId: `${job.kind}-${Date.now()}` }), aborted]);
+    const result = await Promise.race([harness.run(prompts[job.kind], { sessionId: createSessionId(job.kind) }), aborted]);
     const toolName =
       job.kind === "hello"
         ? "hello_ping"
@@ -397,13 +426,64 @@ export function createRuntime(overrides = {}) {
         }
         return out;
       }
-      const agent = await tryAgent({ kind: "import", input, signal: ctx.signal }, mode);
+      const tableMapping = core.reason === "table_mapping_required" && Boolean(core.preview);
+      const agentInput = tableMapping ? prepareImportAgentInput(input, core) : input;
+      const agent = await tryAgent({ kind: "import", input: agentInput, signal: ctx.signal }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
         return {
           ...withCoreMeta(core, mode, "agent_unavailable"),
           needsAgent: true,
           reason: core.reason || AGENT_UNAVAILABLE,
+        };
+      }
+      if (tableMapping) {
+        if (!agent.mapping) {
+          return {
+            ok: false,
+            error: "mapping_unavailable",
+            reason: agent.reason || "agent returned no validated table mapping",
+            candidates: [],
+            mapping: null,
+            usedAi: Boolean(agent.usedAi),
+            needsAgent: true,
+            viaHarness: Boolean(agent.viaHarness),
+            route: agent.route,
+            mode,
+            toolsCalled: agent.toolsCalled || [],
+            preview: core.preview,
+            modelRoute: agent.modelRoute || null,
+          };
+        }
+        const mapped = await extractImport({ ...input, mapping: agent.mapping });
+        if (!mapped.ok || mapped.needsAgent) {
+          return {
+            ok: false,
+            error: "invalid_mapping_result",
+            reason: mapped.error || mapped.reason || "validated mapping could not be applied",
+            errors: mapped.errors || [],
+            candidates: [],
+            mapping: agent.mapping,
+            usedAi: Boolean(agent.usedAi),
+            needsAgent: true,
+            viaHarness: Boolean(agent.viaHarness),
+            route: agent.route,
+            mode,
+            toolsCalled: agent.toolsCalled || [],
+            preview: core.preview,
+            modelRoute: agent.modelRoute || null,
+          };
+        }
+        return {
+          ...mapped,
+          usedAi: true,
+          needsAgent: false,
+          viaHarness: Boolean(agent.viaHarness),
+          route: agent.route,
+          mode,
+          toolsCalled: agent.toolsCalled || [],
+          preview: core.preview,
+          modelRoute: agent.modelRoute || null,
         };
       }
       let out = {

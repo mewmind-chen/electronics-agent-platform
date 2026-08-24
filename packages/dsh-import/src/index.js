@@ -11,6 +11,7 @@ import {
   parseCsv,
   parseExcelBase64,
   tablePreview,
+  validateMappingForHeader,
   validateExtractedRows,
 } from "@electronics/import-core";
 
@@ -18,7 +19,7 @@ export const name = "electronics-import";
 export const inject = ["tools"];
 
 function jsonResult(value) {
-  return value;
+  return JSON.parse(JSON.stringify(value));
 }
 
 export function apply(ctx) {
@@ -74,7 +75,33 @@ export function apply(ctx) {
           table = parseCsv(raw);
         }
         const preview = tablePreview(table);
-        return { ok: true, ...preview, rowCount: table.length };
+        return jsonResult({ ok: true, ...preview, rowCount: table.length });
+      },
+    }),
+  );
+
+  ctx.tools.register(
+    defineTool({
+      name: "import_validate_mapping",
+      description:
+        "Validate one semantic column mapping against the Platform-supplied table header. Receives no file bytes and never parses business rows.",
+      parameters: {
+        header: { type: "array", required: true, items: { type: "string" } },
+        mapping: {
+          type: "object",
+          additionalProperties: true,
+          required: true,
+          description: "{ columns: [{ header, target }] } targets: mpn,qty,brand,dateCode,price,lt,...",
+        },
+      },
+      output: {
+        schema: { type: "object", additionalProperties: true },
+        render(_args, value) {
+          return [{ type: "text", text: JSON.stringify(value) }];
+        },
+      },
+      async execute(args) {
+        return jsonResult(validateMappingForHeader(args.header, args.mapping));
       },
     }),
   );
@@ -119,12 +146,12 @@ export function apply(ctx) {
           defaultKind: args.defaultKind,
           headerIndex: args.headerIndex,
         });
-        return {
+        return jsonResult({
           ok: applied.ok,
           candidates: applied.candidates,
           errors: applied.errors,
           mapping: applied.mapping,
-        };
+        });
       },
     }),
   );
@@ -155,7 +182,7 @@ export function apply(ctx) {
           sourceText: args.sourceText,
           provenanceCheck: Boolean(args.sourceText),
         });
-        return result;
+        return jsonResult(result);
       },
     }),
   );
@@ -174,7 +201,7 @@ export function apply(ctx) {
         },
       },
       async execute(args) {
-        return extractTextLines(args.text);
+        return jsonResult(extractTextLines(args.text));
       },
     }),
   );
@@ -194,7 +221,7 @@ export function apply(ctx) {
         },
       },
       async execute(args) {
-        return parseImportRequest(args.request);
+        return jsonResult(parseImportRequest(args.request));
       },
     }),
   );

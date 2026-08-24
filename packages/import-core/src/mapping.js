@@ -6,6 +6,30 @@
 import { parseColumnMapping } from "@electronics/contracts";
 import { validateExtractedRow } from "./validators.js";
 
+function headerKey(value) {
+  return String(value ?? "").normalize("NFKC").trim().toLowerCase();
+}
+
+export function validateMappingForHeader(header, mappingInput) {
+  const mapping = parseColumnMapping(mappingInput);
+  if (!mapping.ok) return { ok: false, errors: mapping.errors, mapping: null };
+  const available = new Set((Array.isArray(header) ? header : []).map(headerKey));
+  const errors = [];
+  const seenTargets = new Set();
+  for (const [index, column] of mapping.value.columns.entries()) {
+    if (!available.has(headerKey(column.header))) {
+      errors.push({ path: `mapping.columns[${index}].header`, message: "mapped header is not present in preview" });
+    }
+    if (seenTargets.has(column.target)) {
+      errors.push({ path: `mapping.columns[${index}].target`, message: "target must be mapped at most once" });
+    }
+    seenTargets.add(column.target);
+  }
+  return errors.length
+    ? { ok: false, errors, mapping: null }
+    : { ok: true, errors: [], mapping: mapping.value };
+}
+
 export function applyMappingToTable(table, mappingInput, opts = {}) {
   const mapping = parseColumnMapping(mappingInput);
   if (!mapping.ok) return { ok: false, candidates: [], errors: mapping.errors, mapping: null };
@@ -14,11 +38,11 @@ export function applyMappingToTable(table, mappingInput, opts = {}) {
   const headerIndex = opts.headerIndex ?? 0;
   const header = rows[headerIndex] ?? [];
   const targetByHeader = new Map(
-    mapping.value.columns.map((c) => [String(c.header).normalize("NFKC").trim().toLowerCase(), c.target]),
+    mapping.value.columns.map((c) => [headerKey(c.header), c.target]),
   );
   const indexByTarget = {};
   header.forEach((h, i) => {
-    const target = targetByHeader.get(String(h).normalize("NFKC").trim().toLowerCase());
+    const target = targetByHeader.get(headerKey(h));
     if (target && indexByTarget[target] == null) indexByTarget[target] = i;
   });
 

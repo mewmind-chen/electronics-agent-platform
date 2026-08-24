@@ -22,7 +22,11 @@ export function apply(ctx) {
         },
       },
       async execute(args) {
-        return researchCompany({ company: args.company, goal: args.goal }, { firecrawlKey: args.firecrawlKey });
+        const result = await researchCompany(
+          { company: args.company, goal: args.goal },
+          { firecrawlKey: args.firecrawlKey },
+        );
+        return JSON.parse(JSON.stringify(result));
       },
     }),
   );

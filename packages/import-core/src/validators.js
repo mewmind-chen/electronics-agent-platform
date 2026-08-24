@@ -24,6 +24,14 @@ export function qtyFromRawOrNumber(qty, qtyRaw) {
   return { qty: null, from: "none", raw: qtyRaw != null ? String(qtyRaw) : null };
 }
 
+function explicitSourceFacts(sourceText) {
+  const text = String(sourceText || "").normalize("NFKC");
+  return {
+    dateCode: /(?:\b(?:dc|date\s*code)\s*[:：#-]?\s*[a-z]?\d{2,4}\+?|(?:批次|年周)\s*[:：#-]?\s*[a-z]?\d{2,4}\+?)/iu.test(text),
+    leadTime: /(?:交期|货期|lead\s*time|\blt\b|\baot\b)\s*[:：#-]?\s*\d+(?:\.\d+)?\s*(?:周|星期|天|日|weeks?|wks?|days?)?/iu.test(text),
+  };
+}
+
 /**
  * Turn a raw extraction row into a validated ImportCandidate.
  * Conflicts become warnings; values are never silently trusted.
@@ -85,6 +93,22 @@ export function validateExtractedRow(raw, opts = {}) {
     note: raw.note ? String(raw.note) : null,
     warnings,
   };
+
+  const explicit = explicitSourceFacts(opts.sourceText);
+  if (!candidate.dateCode && explicit.dateCode) {
+    warnings.push({
+      code: "date_code_missing",
+      message: "原文含明确批次/DC，但当前候选未提取；请人工核对归属。",
+      field: "dateCode",
+    });
+  }
+  if (!candidate.leadTimeText && explicit.leadTime) {
+    warnings.push({
+      code: "lead_time_missing",
+      message: "原文含明确交期，但当前候选未提取；请人工核对是否为统一交期。",
+      field: "leadTimeText",
+    });
+  }
 
   return parseImportCandidate(candidate);
 }
