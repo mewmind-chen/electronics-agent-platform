@@ -11,6 +11,14 @@ Independent Agent Platform for electronics-trade capabilities shared by
 > Phase 3 的产品是 Import Pipeline V2：Candidate only，不写库。
 > Phase 4 的产品是 Market Sources：request-scoped 连接器，不是 Plugin。
 
+## Current phase
+
+Phase 9.4 connects the two business systems through request-scoped Context
+Providers. Radar and Workbench aggregate their own business facts and inject a
+minimal `context` document into the stable Agent API. The platform never calls
+back into either business database, and internal context never becomes public
+Evidence.
+
 ## Phase 1 scope
 
 Prove the official DeepSeek Harness path:

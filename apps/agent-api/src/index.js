@@ -42,7 +42,7 @@ const server = createServer(async (req, res) => {
     json(res, 200, {
       ok: true,
       service: "electronics-agent-api",
-      phase: 7,
+      phase: 9.4,
       contractVersion: CONTRACT_VERSION,
       routes: listTaskRoutes(),
       agent: {

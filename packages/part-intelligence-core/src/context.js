@@ -69,3 +69,33 @@ export function adviseFromContext(business, publicState) {
     usedInternal: true,
   };
 }
+
+/**
+ * Enrich an already-completed public part-research result with request-scoped
+ * business context. This is deliberately a post-processing boundary: it never
+ * fetches business data and never changes public evidence, verdict, or claims.
+ */
+export function attachBusinessContextToPartResult(result, input = {}, ctx = {}) {
+  const business = resolveBusinessContext(input, ctx);
+  if (!business.ok) {
+    return { ...result, businessContextErrors: business.errors };
+  }
+
+  const advice = adviseFromContext(business.value, result?.verdict?.state || "未知");
+  const enriched = {
+    ...result,
+    businessContext: business.value,
+    advice,
+  };
+
+  // Keep the official/public recommendation unchanged unless the caller
+  // explicitly supplied internal context. Internal context is never evidence.
+  if (advice.usedInternal) {
+    enriched.recommendation = {
+      ...(result?.recommendation || {}),
+      action: advice.action,
+      reasoning: [advice.combined, result?.recommendation?.reasoning || ""].filter(Boolean).join(" "),
+    };
+  }
+  return enriched;
+}

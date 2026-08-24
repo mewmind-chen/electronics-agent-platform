@@ -14,7 +14,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseExecutionMode } from "@electronics/contracts";
 import { extractImport } from "@electronics/import-core";
-import { composePartReport, inferPartIntent, normalizePartResult, researchPart } from "@electronics/part-intelligence-core";
+import {
+  attachBusinessContextToPartResult,
+  composePartReport,
+  inferPartIntent,
+  normalizePartResult,
+  researchPart,
+} from "@electronics/part-intelligence-core";
 import { researchCompany } from "@electronics/company-intelligence-core";
 import { inferTaskFromInput, nextEscalationRole, toModelRoute } from "@electronics/model-policy";
 import {
@@ -352,15 +358,22 @@ export function createRuntime(overrides = {}) {
         if (mode === "agent") return agent;
         return withCoreMeta(await researchPart(input, ctx), mode, "agent_unavailable");
       }
-      const escalate = nextEscalationRole("part", agent, agent.modelRoute?.role || "reasoning");
+      const enriched = attachBusinessContextToPartResult(agent, input, ctx);
+      const escalate = nextEscalationRole("part", enriched, enriched.modelRoute?.role || "reasoning");
       if (escalate && mode !== "core") {
         const again = await tryAgent({ kind: "part", input: { ...input, role: escalate }, ctx }, mode);
         if (again && again.ok !== false && !again.error) {
-          return { ...again, modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : again.modelRoute };
+          const enrichedAgain = attachBusinessContextToPartResult(again, input, ctx);
+          return {
+            ...enrichedAgain,
+            modelRoute: enrichedAgain.modelRoute
+              ? { ...enrichedAgain.modelRoute, escalated: true }
+              : enrichedAgain.modelRoute,
+          };
         }
-        return { ...agent, premiumReviewUnavailable: true };
+        return { ...enriched, premiumReviewUnavailable: true };
       }
-      return agent;
+      return enriched;
     },
 
     async runCompanyResearch(input, ctx = {}) {
