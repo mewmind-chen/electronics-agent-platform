@@ -13,6 +13,7 @@ ENV NODE_ENV=production \
 COPY . .
 RUN npm install --ignore-scripts \
   && npm install --no-save --ignore-scripts @deepseek-ai/dsh-tools@0.1.1-rc.2 \
+  && mkdir -p /app/.dsh-platform \
   && npm cache clean --force \
   && chown -R node:node /app
 

@@ -35,9 +35,9 @@ replaceable capability boundary and versioned evaluation evidence.
 | Company result contains source and confidence | complete | company core + research API tests |
 | Market Sources are business-project neutral | complete | Phase 4 request-scoped connector tests |
 | Credentials have no module-global mutable state | complete | concurrent request-key tests |
-| Platform failure preserves both business cores | partial | local fallbacks exist; production failure-path and deployment smoke are in progress |
+| Platform failure preserves both business cores | complete | Radar/Workbench fallback tests + authenticated deployment smoke |
 | Harness is replaceable without changing callers | complete | stable HTTP contracts + core/agent execution modes |
-| Real business Eval corpus exists | partial | Part has 21 cases; Import 30 and Company 20 plus human labels remain |
+| Real business Eval corpus exists | partial | Import 30, Part 21 and Company 22 are versioned; correction records remain |
 | AI may not autocomplete or rewrite MPN | complete | contract/domain/import eval gates |
 | High-risk results require human confirmation | partial | write ownership is correct; explicit review/correction records remain |
 

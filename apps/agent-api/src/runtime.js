@@ -143,8 +143,22 @@ async function officialRunAgent(job, agentRuntime) {
     model: resolved.policy.model,
     maxTokens: resolved.policy.maxTokens,
   });
+  let removeAbort = () => {};
   try {
-    const result = await harness.run(prompts[job.kind], { sessionId: `${job.kind}-${Date.now()}` });
+    if (job.signal?.aborted) throw job.signal.reason || new Error("task_cancelled");
+    const aborted = new Promise((_, reject) => {
+      const abort = () => {
+        const error = job.signal?.reason instanceof Error ? job.signal.reason : new Error("task_cancelled");
+        Promise.resolve(harness.close()).catch(() => {});
+        reject(error);
+      };
+      if (job.signal?.aborted) return abort();
+      if (job.signal) {
+        job.signal.addEventListener("abort", abort, { once: true });
+        removeAbort = () => job.signal.removeEventListener("abort", abort);
+      }
+    });
+    const result = await Promise.race([harness.run(prompts[job.kind], { sessionId: `${job.kind}-${Date.now()}` }), aborted]);
     const toolName =
       job.kind === "hello"
         ? "hello_ping"
@@ -169,6 +183,7 @@ async function officialRunAgent(job, agentRuntime) {
       modelRoute: resolved.modelRoute || toModelRoute(resolved.policy),
     };
   } finally {
+    removeAbort();
     await harness.close();
   }
 }
@@ -353,7 +368,7 @@ export function createRuntime(overrides = {}) {
     async runPartResearch(input, ctx = {}) {
       const mode = resolveExecutionMode(input);
       if (mode === "core") return withCoreMeta(await researchPart(input, ctx), mode);
-      const agent = await tryAgent({ kind: "part", input, ctx }, mode);
+      const agent = await tryAgent({ kind: "part", input, ctx, signal: ctx.signal }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
         return withCoreMeta(await researchPart(input, ctx), mode, "agent_unavailable");
@@ -361,7 +376,7 @@ export function createRuntime(overrides = {}) {
       const enriched = attachBusinessContextToPartResult(agent, input, ctx);
       const escalate = nextEscalationRole("part", enriched, enriched.modelRoute?.role || "reasoning");
       if (escalate && mode !== "core") {
-        const again = await tryAgent({ kind: "part", input: { ...input, role: escalate }, ctx }, mode);
+        const again = await tryAgent({ kind: "part", input: { ...input, role: escalate }, ctx, signal: ctx.signal }, mode);
         if (again && again.ok !== false && !again.error) {
           const enrichedAgain = attachBusinessContextToPartResult(again, input, ctx);
           return {
@@ -379,14 +394,14 @@ export function createRuntime(overrides = {}) {
     async runCompanyResearch(input, ctx = {}) {
       const mode = resolveExecutionMode(input);
       if (mode === "core") return withCoreMeta(await researchCompany(input, ctx), mode);
-      const agent = await tryAgent({ kind: "company", input, ctx }, mode);
+      const agent = await tryAgent({ kind: "company", input, ctx, signal: ctx.signal }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
         return withCoreMeta(await researchCompany(input, ctx), mode, "agent_unavailable");
       }
       const escalate = nextEscalationRole("company", agent, agent.modelRoute?.role || "reasoning");
       if (escalate && mode !== "core") {
-        const again = await tryAgent({ kind: "company", input: { ...input, role: escalate }, ctx }, mode);
+        const again = await tryAgent({ kind: "company", input: { ...input, role: escalate }, ctx, signal: ctx.signal }, mode);
         if (again && again.ok !== false && !again.error) {
           return { ...again, modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : again.modelRoute };
         }

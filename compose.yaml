@@ -9,8 +9,16 @@ services:
       AGENT_API_TOKEN: ${AGENT_API_TOKEN:?Set AGENT_API_TOKEN in the deployment environment}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       ELECTRONICS_IGNORE_LIVE: ${ELECTRONICS_IGNORE_LIVE:-0}
+      TASK_STORE_PATH: /app/.dsh-platform/tasks.sqlite
+      TASK_TTL_MS: ${TASK_TTL_MS:-604800000}
+      TASK_DEADLINE_MS: ${TASK_DEADLINE_MS:-120000}
     ports:
       - "${AGENT_API_BIND_ADDRESS:-127.0.0.1}:8787:8787"
     security_opt:
       - no-new-privileges:true
+    volumes:
+      - agent_state:/app/.dsh-platform
     restart: unless-stopped
+
+volumes:
+  agent_state:

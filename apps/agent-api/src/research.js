@@ -15,59 +15,95 @@ export function requestCtx(req, extra = {}) {
     internalQuoteCount: extra.internalQuoteCount ?? context.quotation?.openCount ?? 0,
     snapshots: extra.snapshots ?? context.snapshots ?? [],
     previousLcscPrice: extra.previousLcscPrice ?? context.previousLcscPrice ?? null,
+    signal: extra.signal,
   };
 }
 
-export function createResearchHandlers(runtime) {
-  async function handlePartResearch(body, req) {
-    return runtime.runPartResearch(body, requestCtx(req, body));
+export function createResearchHandlers(runtime, { store, deadlineMs = Number(process.env.TASK_DEADLINE_MS || 120_000) } = {}) {
+  if (!store) throw new Error("createResearchHandlers requires a durable TaskStore");
+  const taskInputs = new Map();
+  const controllers = new Map();
+
+  async function handlePartResearch(body, req, options = {}) {
+    return runtime.runPartResearch(body, requestCtx(req, { ...body, ...options }));
   }
 
-  async function handleCompanyResearch(body, req) {
-    return runtime.runCompanyResearch(body, requestCtx(req, body));
+  async function handleCompanyResearch(body, req, options = {}) {
+    return runtime.runCompanyResearch(body, requestCtx(req, { ...body, ...options }));
   }
 
-  const tasks = new Map();
-
-  function createTask(type, input) {
-    const taskId = `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const handle = { taskId, type, status: "queued", input, events: [], result: null, error: "" };
-    tasks.set(taskId, handle);
-    return handle;
+  function createTask({ taskId, type, input, requestHash, idempotencyKey }) {
+    const stored = store.create({ taskId, type, requestHash, idempotencyKey });
+    if (stored.created) taskInputs.set(taskId, input);
+    return stored;
   }
 
   function getTask(taskId) {
-    return tasks.get(taskId) || null;
+    return store.get(taskId);
   }
 
   async function runTask(taskId, req) {
-    const task = tasks.get(taskId);
+    const task = store.get(taskId);
     if (!task) return null;
-    task.status = "running";
-    task.events.push({ taskId, phase: "tool_call", name: task.type, payload: {} });
+    if (task.status === "cancelled" || task.status === "done" || task.status === "failed") return task;
+    const input = taskInputs.get(taskId);
+    if (!input) return task;
+    const controller = new AbortController();
+    controllers.set(taskId, controller);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort(new Error("deadline_exceeded"));
+    }, Math.max(1, deadlineMs));
+    store.setRunning(taskId);
+    store.appendEvent(taskId, { phase: "tool_call", name: task.type, payload: {} });
     try {
       const result =
         task.type === "company_research"
-          ? await handleCompanyResearch(task.input, req)
-          : await handlePartResearch(task.input, req);
-      task.result = result;
-      task.status = result.ok ? "done" : "failed";
-      task.error = result.ok ? "" : JSON.stringify(result.errors || result.error || "failed");
-      task.events.push({
+          ? await handleCompanyResearch(input, req, { signal: controller.signal })
+          : await handlePartResearch(input, req, { signal: controller.signal });
+      if (store.get(taskId)?.status === "cancelled") return store.get(taskId);
+      if (timedOut) {
+        store.fail(taskId, "deadline_exceeded");
+        store.appendEvent(taskId, { phase: "degrade", name: "deadline", payload: { timeout: true } });
+        return store.get(taskId);
+      }
+      const updated = store.complete(taskId, result);
+      if (updated.updated) store.appendEvent(taskId, {
         taskId,
         phase: result.ok ? "observation" : "error",
         name: result.viaHarness ? "harness" : "core",
         payload: { ok: result.ok, viaHarness: Boolean(result.viaHarness) },
       });
     } catch (err) {
-      task.status = "failed";
-      task.error = err instanceof Error ? err.message : "failed";
-      task.events.push({ taskId, phase: "error", name: "exception", payload: { error: task.error } });
+      if (store.get(taskId)?.status === "cancelled") return store.get(taskId);
+      const error = timedOut ? "deadline_exceeded" : err instanceof Error ? err.message : "failed";
+      store.fail(taskId, error);
+      store.appendEvent(taskId, { phase: timedOut ? "degrade" : "error", name: timedOut ? "deadline" : "exception", payload: { error } });
+    } finally {
+      clearTimeout(timer);
+      controllers.delete(taskId);
+      taskInputs.delete(taskId);
     }
-    return task;
+    return store.get(taskId);
   }
 
-  return { handlePartResearch, handleCompanyResearch, createTask, getTask, runTask };
+  function cancelTask(taskId) {
+    const cancelled = store.cancel(taskId);
+    if (cancelled.cancelled) controllers.get(taskId)?.abort(new Error("task_cancelled"));
+    return cancelled;
+  }
+
+  return {
+    handlePartResearch,
+    handleCompanyResearch,
+    createTask,
+    getTask,
+    runTask,
+    cancelTask,
+    listEvents: store.listEvents,
+    subscribeEvents: store.subscribe,
+  };
 }
 
 export function listTaskRoutes() {

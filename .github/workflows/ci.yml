@@ -19,5 +19,8 @@ jobs:
       # Phase 1 deliberately proves the official CLI composition. Developer
       # machines may have `dsh` globally; a clean runner must install the same
       # pinned CLI explicitly before executing that invariant.
-      - run: npm install --no-save --ignore-scripts @deepseek-ai/dsh@0.1.0-rc.6
+      - name: Install pinned official Harness CLI in isolation
+        run: |
+          npm install --prefix "$RUNNER_TEMP/dsh-cli" --ignore-scripts @deepseek-ai/dsh@0.1.0-rc.6
+          echo "$RUNNER_TEMP/dsh-cli/node_modules/.bin" >> "$GITHUB_PATH"
       - run: npm test
