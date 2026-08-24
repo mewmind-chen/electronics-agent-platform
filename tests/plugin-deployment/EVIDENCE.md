@@ -8,7 +8,7 @@ This is a redacted evidence index. Secrets, bearer values, cookies, and raw cred
 
 | Repository | Branch | Commit | Working tree before this acceptance change |
 |---|---|---|---|
-| Platform | `main` | `40c7eb215e9999261f7a0b8f3f4f7e65dfb3c60b` | pre-existing handoff files preserved |
+| Platform | `main` | `4c14d84` | deployment hardening and evidence committed |
 | Radar | `main` | `6b806f5496b0fafa043da84ca738692d470cbd69` | clean |
 | Workbench | `main` | `1f2c79b848d650467e1e93e11b993d0189711c4c` | clean |
 
