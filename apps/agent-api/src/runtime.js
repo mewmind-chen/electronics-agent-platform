@@ -16,10 +16,12 @@ import { parseExecutionMode } from "@electronics/contracts";
 import { extractImport } from "@electronics/import-core";
 import { researchPart } from "@electronics/part-intelligence-core";
 import { researchCompany } from "@electronics/company-intelligence-core";
+import { inferTaskFromInput, toModelRoute } from "@electronics/model-policy";
 import {
   isAgentAvailable,
   resolveAgentRuntime,
   resolveJsonrpcBin,
+  resolveModelPolicy,
 } from "./agent-runtime.js";
 import { extractNamedTool, stubOfficialAgent } from "./harness-dispatch.js";
 
@@ -71,7 +73,7 @@ function companyPrompt(input) {
   ].join(" ");
 }
 
-function unavailable(mode, reason = "official DeepSeek Harness is not available") {
+function unavailable(mode, reason = "official DeepSeek Harness is not available", modelRoute = null) {
   return {
     ok: false,
     error: AGENT_UNAVAILABLE,
@@ -81,6 +83,7 @@ function unavailable(mode, reason = "official DeepSeek Harness is not available"
     usedAi: false,
     route: "unavailable",
     candidates: [],
+    modelRoute,
   };
 }
 
@@ -92,6 +95,7 @@ function withCoreMeta(result, mode, fallbackFrom = null) {
     usedAi: false,
     route: fallbackFrom ? "core_fallback" : "core",
     fallbackFrom,
+    modelRoute: null,
   };
 }
 
@@ -148,7 +152,14 @@ async function officialRunAgent(job, agentRuntime) {
       err.eventCount = result.events?.length ?? 0;
       throw err;
     }
-    return { ...extracted.value, viaHarness: true, usedAi: true, route: "harness", toolsCalled: extracted.toolsCalled };
+    return {
+      ...extracted.value,
+      viaHarness: true,
+      usedAi: true,
+      route: "harness",
+      toolsCalled: extracted.toolsCalled,
+      modelRoute: resolved.modelRoute || toModelRoute(resolved.policy),
+    };
   } finally {
     await harness.close();
   }
@@ -157,35 +168,81 @@ async function officialRunAgent(job, agentRuntime) {
 export function createRuntime(overrides = {}) {
   const env = overrides.env || process.env;
   const allowStub = Boolean(overrides.allowStub) || isTestStubEnabled(env);
+  const router = overrides.router;
   const agentRuntime =
     overrides.agentRuntime ||
     resolveAgentRuntime({
       env,
       modelPolicy: overrides.modelPolicy,
       overrideAvailable: overrides.harnessAvailable,
+      router,
     });
-  const harnessOk = Boolean(agentRuntime.available);
-  const officialRunner = overrides.officialRunAgent || ((job) => officialRunAgent(job, agentRuntime));
+  const officialRunner = overrides.officialRunAgent || ((job) => officialRunAgent(job, job.agentRuntime || agentRuntime));
   let harnessStarts = 0;
+  let routerCalls = 0;
 
-  async function runOfficial(job) {
+  function routeFor(kind, input) {
+    routerCalls += 1;
+    const task = inferTaskFromInput(kind, input);
+    return resolveAgentRuntime({
+      env,
+      modelPolicy: input,
+      overrideAvailable: overrides.harnessAvailable,
+      router: router || agentRuntime.router,
+      task,
+    });
+  }
+
+  async function runOfficial(job, resolved) {
     harnessStarts += 1;
-    return officialRunner({ ...job, modelPolicy: agentRuntime.policy });
+    return officialRunner({ ...job, modelPolicy: resolved.policy, agentRuntime: resolved });
   }
 
   async function tryAgent(job, mode) {
-    if (mode === "agent" && !harnessOk) return unavailable(mode);
+    if (mode === "core") return unavailable(mode, "core_does_not_start_harness");
+    const resolved = routeFor(job.kind, job.input || {});
+    const modelRoute = resolved.modelRoute;
+    if (mode === "agent" && !resolved.available) return unavailable(mode, resolved.reason, modelRoute);
     if (allowStub && mode !== "agent") {
       const stub = await stubOfficialAgent(job, overrides.tools);
-      return { ...stub, viaHarness: false, usedAi: false, route: "stub", mode };
+      return { ...stub, viaHarness: false, usedAi: false, route: "stub", mode, modelRoute };
     }
-    if (!harnessOk) return unavailable(mode);
+    if (!resolved.available) return unavailable(mode, resolved.reason, modelRoute);
     try {
-      const out = await runOfficial(job);
-      return { ...out, mode, viaHarness: true, usedAi: true, route: "harness" };
+      const out = await runOfficial(job, resolved);
+      return { ...out, mode, viaHarness: true, usedAi: true, route: "harness", modelRoute: out.modelRoute || modelRoute };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return unavailable(mode, message);
+      const activeRouter = router || agentRuntime.router;
+      if (activeRouter && job.input) {
+        const next = activeRouter.fallback(
+          { ...(resolved.modelRoute || {}), ...(resolved.policy || {}), id: resolved.policy?.id || resolved.modelRoute?.id },
+          inferTaskFromInput(job.kind, job.input),
+          err,
+        );
+        if (next?.ok) {
+          const retried = resolveAgentRuntime({
+            env,
+            modelPolicy: { provider: next.provider, model: next.model, modelRoute: toModelRoute(next) },
+            overrideAvailable: true,
+            router: activeRouter,
+          });
+          try {
+            const out = await runOfficial(job, retried);
+            return {
+              ...out,
+              mode,
+              viaHarness: true,
+              usedAi: true,
+              route: "harness",
+              modelRoute: toModelRoute(next),
+            };
+          } catch (err2) {
+            return unavailable(mode, err2 instanceof Error ? err2.message : String(err2), toModelRoute(next));
+          }
+        }
+      }
+      return unavailable(mode, message, modelRoute);
     }
   }
 
@@ -193,10 +250,22 @@ export function createRuntime(overrides = {}) {
     get harnessStarts() {
       return harnessStarts;
     },
-    harnessAvailable: harnessOk,
+    get routerCalls() {
+      return routerCalls;
+    },
+    harnessAvailable: Boolean(agentRuntime.available),
     stubAllowed: allowStub,
     modelPolicy: agentRuntime.policy,
-    isAgentAvailable: () => isAgentAvailable({ env, policy: agentRuntime.policy, override: overrides.harnessAvailable }),
+    isAgentAvailable: (input) => {
+      const task = input ? inferTaskFromInput(input.kind || "import", input) : undefined;
+      return isAgentAvailable({
+        env,
+        policy: resolveModelPolicy(input || {}, env, { router: router || agentRuntime.router, task }),
+        override: overrides.harnessAvailable,
+        router: router || agentRuntime.router,
+        task,
+      });
+    },
     resolveAgentRuntime: () => agentRuntime,
 
     async ping(token) {
@@ -238,15 +307,13 @@ export function createRuntime(overrides = {}) {
         reason: agent.reason,
         preview: core.preview,
         textPreview: core.textPreview,
+        modelRoute: agent.modelRoute || null,
       };
     },
 
     async runPartResearch(input, ctx = {}) {
       const mode = resolveExecutionMode(input);
       if (mode === "core") return withCoreMeta(await researchPart(input, ctx), mode);
-      if (mode === "auto" && !harnessOk && !allowStub) {
-        return withCoreMeta(await researchPart(input, ctx), mode, "agent_unavailable");
-      }
       const agent = await tryAgent({ kind: "part", input, ctx }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
@@ -258,9 +325,6 @@ export function createRuntime(overrides = {}) {
     async runCompanyResearch(input, ctx = {}) {
       const mode = resolveExecutionMode(input);
       if (mode === "core") return withCoreMeta(await researchCompany(input, ctx), mode);
-      if (mode === "auto" && !harnessOk && !allowStub) {
-        return withCoreMeta(await researchCompany(input, ctx), mode, "agent_unavailable");
-      }
       const agent = await tryAgent({ kind: "company", input, ctx }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;

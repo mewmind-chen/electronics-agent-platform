@@ -12,6 +12,7 @@ import {
   isPlainObject,
   ok,
   parseExecutionMode,
+  parseModelSelection,
   rejectWriteSemantics,
 } from "./common.js";
 import { evidenceIdsExist, parseEvidenceItem, parseVerdict } from "./evidence.js";
@@ -32,12 +33,14 @@ export function parseCompanyResearchRequest(input, path = "companyRequest") {
     else input.steps.forEach((s, i) => expectEnum(errors, `${path}.steps[${i}]`, s, COMPANY_STEPS));
   }
   const mode = parseExecutionMode(input, path, errors);
+  const model = parseModelSelection(input, path, errors);
   if (errors.length) return bad(errors);
   return ok({
     company: String(input.company).trim(),
     goal: input.goal ? String(input.goal) : "",
     steps: input.steps ?? ["gys", "shop", "intel"],
     mode,
+    ...model,
   });
 }
 

@@ -15,6 +15,7 @@
     "@electronics/import-core": "file:../../packages/import-core",
     "@electronics/part-intelligence-core": "file:../../packages/part-intelligence-core",
     "@electronics/company-intelligence-core": "file:../../packages/company-intelligence-core",
+    "@electronics/model-policy": "file:../../packages/model-policy",
     "@electronics/dsh-hello": "file:../../packages/dsh-hello",
     "@electronics/dsh-import": "file:../../packages/dsh-import",
     "@electronics/dsh-part": "file:../../packages/dsh-part",

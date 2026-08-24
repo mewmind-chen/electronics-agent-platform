@@ -49,8 +49,8 @@ const server = createServer(async (req, res) => {
         available: runtime.isAgentAvailable(),
         modeDefault: "auto",
         policy: {
-          provider: runtime.modelPolicy.provider,
-          model: runtime.modelPolicy.model,
+          provider: runtime.modelPolicy?.provider || "unresolved",
+          model: runtime.modelPolicy?.model || "unresolved",
         },
       },
     });
@@ -88,6 +88,7 @@ const server = createServer(async (req, res) => {
         reason: result.reason,
         preview: result.preview,
         textPreview: result.textPreview,
+        modelRoute: result.modelRoute || null,
       });
     } catch (err) {
       console.error("[agent-api] extract failed", err);

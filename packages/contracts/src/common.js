@@ -3,8 +3,11 @@
  * These types must stay free of @deepseek-ai / Harness imports.
  */
 
-export const CONTRACT_VERSION = "0.2.1";
+export const CONTRACT_VERSION = "0.2.2";
 export const EXECUTION_MODES = Object.freeze(["auto", "agent", "core"]);
+export const MODEL_MODES = Object.freeze(["auto", "selected", "fixed"]);
+export const MODEL_QUALITIES = Object.freeze(["economy", "standard", "quality"]);
+export const MODEL_ROLES = Object.freeze(["fast", "reasoning", "vision", "long", "premium"]);
 
 export const CURRENCIES = Object.freeze(["USD", "CNY"]);
 export const COST_TAXES = Object.freeze(["none", "exclusive", "inclusive"]);
@@ -48,6 +51,39 @@ export function parseExecutionMode(input, path, errors) {
   if (input.viaAgent === true) return "agent";
   if (input.viaAgent === false) return "core";
   return "auto";
+}
+
+export function parseModelSelection(input, path, errors) {
+  if (!isPlainObject(input)) {
+    return { modelMode: "auto", quality: "standard", role: undefined, provider: undefined, model: undefined };
+  }
+  let modelMode = "auto";
+  if (input.modelMode != null) {
+    expectEnum(errors, `${path}.modelMode`, input.modelMode, MODEL_MODES);
+    if (MODEL_MODES.includes(input.modelMode)) modelMode = input.modelMode;
+  }
+  let quality = "standard";
+  if (input.quality != null) {
+    expectEnum(errors, `${path}.quality`, input.quality, MODEL_QUALITIES);
+    if (MODEL_QUALITIES.includes(input.quality)) quality = input.quality;
+  }
+  let role;
+  if (input.role != null) {
+    expectEnum(errors, `${path}.role`, input.role, MODEL_ROLES);
+    if (MODEL_ROLES.includes(input.role)) role = input.role;
+  }
+  if (modelMode === "fixed") {
+    expectString(errors, `${path}.provider`, input.provider, { max: 80 });
+    expectString(errors, `${path}.model`, input.model, { max: 80 });
+  }
+  return {
+    modelMode,
+    quality,
+    role,
+    provider: input.provider ? String(input.provider) : undefined,
+    model: input.model ? String(input.model) : undefined,
+    sessionModel: input.sessionModel ? String(input.sessionModel) : undefined,
+  };
 }
 
 export function expectEnum(errors, path, value, allowed) {

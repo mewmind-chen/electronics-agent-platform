@@ -18,6 +18,7 @@ import {
   isPlainObject,
   ok,
   parseExecutionMode,
+  parseModelSelection,
   rejectWriteSemantics,
 } from "./common.js";
 import { evidenceIdsExist, parseEvidenceItem, parseVerdict } from "./evidence.js";
@@ -46,6 +47,7 @@ export function parsePartResearchRequest(input, path = "partRequest") {
     }
   }
   const mode = parseExecutionMode(input, path, errors);
+  const model = parseModelSelection(input, path, errors);
   if (errors.length) return bad(errors);
   return ok({
     mpn: displayMpn(input.mpn),
@@ -54,6 +56,7 @@ export function parsePartResearchRequest(input, path = "partRequest") {
     cost: input.cost ?? undefined,
     steps: input.steps ?? ["lcsc", "hqew", "intel", "findchips", "icnet"],
     mode,
+    ...model,
   });
 }
 

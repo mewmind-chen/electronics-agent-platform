@@ -1,0 +1,11 @@
+{
+  "name": "@electronics/model-policy",
+  "version": "0.8.1",
+  "private": true,
+  "type": "module",
+  "description": "Framework-neutral model registry, capability matrix, and router. No Harness. No API keys.",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  }
+}

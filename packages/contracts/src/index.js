@@ -7,10 +7,14 @@
 export {
   CONTRACT_VERSION,
   EXECUTION_MODES,
+  MODEL_MODES,
+  MODEL_QUALITIES,
+  MODEL_ROLES,
   SOURCE_KEYS,
   displayMpn,
   normalizeMpnKey,
   parseExecutionMode,
+  parseModelSelection,
 } from "./common.js";
 
 export {
