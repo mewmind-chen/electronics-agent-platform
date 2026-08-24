@@ -15,6 +15,7 @@
 - 不得覆盖用户原有改动；特别是 Platform 根目录未跟踪的 `package-lock.json`，禁止修改、暂存或提交。
 - 原始方案路径：
   `/Users/ylf/Documents/ChatGPT/工作台研究/.dsh-uploads/session-554847dc-04ff-4843-998f-024f2497992b/816dd77a3e7d18d3-Electronics_Agent_Platform_最终实施方案.md`
+- §37 证据：`docs/ACCEPTANCE_14.md`（14/14 架构红线通过；不等于整体落地完成）。
 
 ## 三仓库
 
@@ -24,7 +25,7 @@
 
 ## 已提交并推送
 
-Platform：
+Platform（远端 HEAD `6dc8036`）：
 
 - `0e11974` `feat: attach caller business context to research`
 - `187dbd3` `fix: enforce agent API production boundaries`
@@ -33,35 +34,40 @@ Platform：
 - `27e27ad` `test: add import and company eval corpora`
 - `a578120` `feat: make agent tasks durable and resumable`
 - `619ee0a` `feat: enforce production request boundaries`
+- `8b87c7b` `docs: add implementation handoff`
+- `36417d6` `fix: secure spreadsheet import dependencies`
+- `ef22647` `feat: make business-context advice pluggable`
+- `6dc8036` `docs: evidence for all 14 acceptance criteria of the original scheme`
 
-Radar：
+Radar（远端 HEAD `ef011a9`）：
 
 - `8f53974` `feat: inject radar context into part research`
 - `5649a97` `fix: harden platform fallback boundary`
 - `8655969` `fix: persist part analyses in shared database`
+- `33f79c2` `test: isolate radar PWA fixtures`
+- `ef011a9` `feat: human accept/reject/correct loop for part analyses`
 
-Workbench：
+Workbench（远端 HEAD `fbb73e3`）：
 
 - `800428d` `feat: inject quotation context into part research`
 - `c661f06` `fix: isolate platform credentials and fallback`
 - `5728bab` `perf: index quotation context lookup`
+- `99ffb57` `test: isolate workbench platform fixtures`
+- `fbb73e3` `feat: human accept/reject/correct loop for saved reports`
 
-## Platform 当前现场
+## 当前现场
 
-Platform `main` 的已推送 HEAD 为 `619ee0a`。存在一批尚未提交的安全依赖和 CI 改动，必须保留、审查、验证后提交推送：
+Platform `main` 已推送 HEAD 为 `6dc8036`。本地全量测试 **115/115**。
 
-- `.github/workflows/ci.yml`
-- `Dockerfile`
-- `apps/agent-api/package-lock.json`
-- `packages/dsh-import/package-lock.json`
-- `packages/import-core/package-lock.json`
-- `packages/import-core/package.json`
-- `docs/phase10/SECURITY_DEPENDENCIES.md`
-- `tests/phase10/security-dependencies.test.mjs`
+根目录仍有未跟踪文件，**禁止误提交**：
 
-这批改动将 `xlsx` 升级为 SheetJS 官方 CDN 的 `0.20.3` 精确包，并增加真实 XLSX 解析回归测试。最近一次 Platform 本地全量测试为 `114/114` 通过；安全/导入定向测试为 `8/8` 通过。Docker 构建在用户中断后没有产生新镜像，提交前需重新完成构建验证。
+- `package-lock.json`（用户原有；不要暂存）
+- `HANDOFF.md`（与 `docs/HANDOFF.md` 重复的根目录副本）
+- `eslint.config.mjs/`（异常目录，不要当配置提交）
 
-`619ee0a` 的远端 CI 只在 DSH CLI 缺失 peer dependency 处失败，其余 `111/112` 通过。当前未提交 workflow 已增加明确 peers，需通过新提交的 CI 确认。
+Radar：`npm test` **218/218**，`typecheck` 通过。工作区有人工决定测试补强，尚未提交。
+
+Workbench：脚本测试 **159** + TypeScript **24**，`typecheck` 通过。工作区有 `0009_report_review_correction.sql`（修正正文 `corrected_json`），尚未提交。
 
 ## DSH 边界
 
@@ -73,29 +79,21 @@ Platform `main` 的已推送 HEAD 为 `619ee0a`。存在一批尚未提交的安
 
 本地验证直接使用现有 `dsh`。CI 若需要 CLI，只允许安装在 GitHub Runner 的临时目录，不得让产品运行时依赖全局 CLI。
 
-## 已知待修复测试
-
-Radar：
-
-- `npm test` 当时为 216 个测试中 209 通过、7 失败。
-- 7 个失败都来自 `scripts/grok-pwa-plugin.test.mjs`，原因是测试读取了真实 `src/lib/og/site.json` 和 `public/og.jpg`。
-- `typecheck` 和 `build:dev` 通过；应修复测试隔离，不要改坏生产站点语义。
-
-Workbench：
-
-- 脚本测试当时 157 个中 150 通过、7 失败；TypeScript 后续测试 `24/24` 通过。
-- 6 个 PWA 失败是同类测试隔离问题。
-- `scripts/migration-plan.test.mjs` 有1 个过时断言，它认为不存在业务 migrations，但实际已有 `0002-0007`。
-- `typecheck` 和 `build` 通过。
-
 ## 后续必做
 
-1. 审查 Platform 未提交 diff，运行定向与全量测试、`git diff --check`、Docker 构建，然后只暂存这一批计划文件，提交并推送，监控 CI 到终态。
-2. 分别修复 Radar/Workbench 的陈旧测试，全量测试、类型检查、构建通过后各自提交推送。
-3. 将 `packages/part-intelligence-core/src/context.js` 中的 `adviseFromContext` 硬编码 if/else 抽离为能力注册/插件接缝，保持不反向侵入业务数据层。
-4. 在 Radar/Workbench 增加人工接受、拒绝、修正闭环，由业务系统持久化最终动作；Platform 不拥有正式业务决定。
-5. 完成 Vision/Long Import 的生产能力路径与资格验证，运行 Import30、Part21、Company22 评测集。
-6. 按原始方案逐项出具 14 项验收证据，确认所有仓库测试、构建、CI、提交和推送都完成后，才能宣布整体落地完成。
+已完成（不要再当待办）：
+
+1. ~~审查并提交 Platform 安全依赖 / CI peers~~ → `36417d6`
+2. ~~修复 Radar/Workbench 陈旧 PWA / migration 测试~~ → Radar `33f79c2`，Workbench `99ffb57`
+3. ~~`adviseFromContext` 抽成可注册接缝~~ → `ef22647`（默认规则仍在 default adviser 内，接缝已在）
+4. ~~人工接受 / 拒绝 / 修正闭环~~ → Radar `ef011a9`；Workbench `fbb73e3` + `0009`（修正正文）
+5. ~~出具 14 项验收证据~~ → `docs/ACCEPTANCE_14.md`（第 1/10/11 项已写准确，第 14 项 Workbench 修正已做实）
+
+仍未完成：
+
+1. Vision / Long Import 的生产能力路径与资格验证。现状：9 个绑定模型里 **4 个 production**，`glm-4v-flash` 未过，long 路径超时。Import30 / Part21 / Company22 契约评测已在 `npm test` 中跑过。
+2. 将本批三仓提交推送到对应远端。未推送不算完成。
+3. 不要用 §37 签字代替整体落地。整体落地还要看 Vision/Long、production 模型池、CI 绿、三仓推送。
 
 ## 交接原则
 
