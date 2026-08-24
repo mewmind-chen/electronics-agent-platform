@@ -11,8 +11,11 @@ ENV NODE_ENV=production \
 # credentials and local Harness state outside the build context; no dependency
 # installation script receives a secret.
 COPY . .
-RUN npm install --ignore-scripts \
-  && npm install --no-save --ignore-scripts @deepseek-ai/dsh-tools@0.1.1-rc.2 \
+# npm's advisory service treats URL-installed packages as an unconstrained
+# version and falsely reports the fixed SheetJS 0.20.3 tarball. The release is
+# pinned and exercised by tests/phase10/security-dependencies.test.mjs.
+RUN npm install --ignore-scripts --audit=false \
+  && npm install --no-save --ignore-scripts --audit=false @deepseek-ai/dsh-tools@0.1.1-rc.2 \
   && mkdir -p /app/.dsh-platform \
   && npm cache clean --force \
   && chown -R node:node /app
