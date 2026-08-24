@@ -26,8 +26,12 @@
     "imageImport": {"status": 422, "error": "vision_unavailable", "candidateCount": 0, "fabricated": false}
   },
   "repoGates": {
-    "radar": {"tests": "232/232", "typecheck": true, "buildDev": true},
-    "workbench": {"tests": "38/38", "typecheck": true, "build": true}
+    "radar": {"tests": "232/232", "typecheck": true, "buildDev": true, "devHttp": 200, "platformEnv": true},
+    "workbench": {"tests": "38/38", "typecheck": true, "build": true, "agentHealth": true, "platformEnv": true}
   },
-  "release": {"status": "blocked", "reason": "fresh Desktop P2 Company GUI evidence still required", "v1TagCreated": false}
+  "desktopGui": {
+    "part": {"toolCall": "part_research", "mpn": "TPS54560DDAR", "businessReport": true},
+    "company": {"toolCall": "company_research", "company": "Texas Instruments (TI)", "businessReport": true, "unknownWithoutEvidence": true}
+  },
+  "release": {"status": "ready_for_freeze", "v1TagCreated": false}
 }

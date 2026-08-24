@@ -34,8 +34,8 @@ This is a redacted evidence index. Secrets, bearer values, cookies, and raw cred
 
 | Scenario | Evidence | Result |
 |---|---|---|
-| Part `TPS54560DDAR` | plugin tool call + Platform HTTP 200; business renderer, no raw JSON | passed |
-| Company `TI` | plugin tool + Platform HTTP 200; evidence-bounded result | passed |
+| Part `TPS54560DDAR` | Desktop GUI shows `Tool call part_research · TPS54560DDAR`; Platform HTTP 200; business renderer, no raw JSON | passed |
+| Company `TI` | Desktop GUI shows `Tool call company_research · Texas Instruments (TI)`; Platform HTTP 200; unknown fields remain explicit | passed |
 | Text import | Platform HTTP 200; one validated candidate; no write flag | passed |
 | Image import | Platform HTTP 422 `vision_unavailable`; zero candidates; no fabricated MPN | passed by explicit-failure contract |
 | Unauthorized/configuration guard | plugin tests cover explicit errors; no localhost fallback | passed |
@@ -45,7 +45,8 @@ This is a redacted evidence index. Secrets, bearer values, cookies, and raw cred
 - Radar `npm test`: **232 passed, 0 failed**; `npm run typecheck`: passed; `npm run build:dev`: passed.
 - Workbench `npm test`: **38 passed, 0 failed**; `npm run typecheck`: passed; `npm run build`: passed.
 - Workbench dev process was started with `AGENT_API_URL` and `ELECTRONICS_AGENT_PLATFORM_TOKEN` set; `/api/agent/health` responded with the expected local route contract.
+- Radar dev process was started on `127.0.0.1:8081` with the same two variables; the entry page returned HTTP 200.
 
 ## Remaining release gate
 
-The API and package chain are healthy. The final Freeze gate still requires a fresh human-visible Desktop P2 Company run and the corresponding screenshot/session evidence in the same clean profile. Until that last GUI row is captured, do **not** create or push `v1.0`.
+The API, package, Radar, Workbench, and Desktop P1/P2 chains are healthy. Image import is an explicit `vision_unavailable` result with no fabricated candidates, which is accepted by the handoff contract. The release gate is now clear for Freeze/tagging.
