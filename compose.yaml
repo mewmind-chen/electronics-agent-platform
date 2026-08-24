@@ -1,0 +1,16 @@
+services:
+  agent-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AGENT_API_HOST: 0.0.0.0
+      AGENT_API_PORT: "8787"
+      AGENT_API_TOKEN: ${AGENT_API_TOKEN:?Set AGENT_API_TOKEN in the deployment environment}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      ELECTRONICS_IGNORE_LIVE: ${ELECTRONICS_IGNORE_LIVE:-0}
+    ports:
+      - "${AGENT_API_BIND_ADDRESS:-127.0.0.1}:8787:8787"
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

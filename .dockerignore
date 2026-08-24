@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+npm-debug.log
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+.credentials.yaml
+.dsh-platform
+package-lock.json
+coverage
+tests
+docs

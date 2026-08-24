@@ -34,7 +34,9 @@
 - id: sandbox-policy
   name: '@deepseek-ai/dsh-sandbox-policy'
   config:
-    mode: danger-full-access
+    # Research tools are explicit network/domain functions. The agent never
+    # needs to modify the container filesystem or business data.
+    mode: read-only
     workspaceRoot: !!js process.env.DSH_CWD ?? process.cwd()
 
 - id: subprocess

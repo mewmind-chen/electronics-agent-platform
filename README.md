@@ -86,3 +86,33 @@ export DEEPSEEK_API_KEY=...
 Optional: `DSH_MODEL` (default `deepseek-chat`).
 
 Session logs for the JSON-RPC runtime go to `.dsh-platform/sessions/` (gitignored).
+
+## Deployment
+
+The container is a stable HTTP boundary, not a carrier for Radar or Workbench
+data. It listens on `0.0.0.0:8787` inside the container; Compose binds that port
+to loopback by default. `GET /health` is public and contains only non-secret
+readiness metadata. Every business request, including the deployment smoke,
+requires `AGENT_API_TOKEN`.
+
+```bash
+cp .env.example .env
+# Set AGENT_API_TOKEN to a long random value. Optionally set a runtime-only
+# DEEPSEEK_API_KEY in your deployment secret store.
+docker compose up --build -d
+node scripts/deployment-smoke.mjs --url http://127.0.0.1:8787 --token "$AGENT_API_TOKEN"
+```
+
+The image runs as the unprivileged `node` user, excludes `.env`, credentials,
+host `node_modules`, session/workspace state and tests from its build context,
+and fails startup when `AGENT_API_TOKEN` is absent. The complete workspace graph
+is installed, including the DSH tool peer at the image root so every official
+local plugin can resolve it. No token, business context, database credential,
+or model key is baked into the image. The smoke makes two authenticated Core research calls:
+Radar-shaped inventory context and Workbench-shaped quotation context. It
+validates the request boundary without asking the Harness to read either business
+database.
+
+The Harness sandbox defaults to `read-only`; electronics research is performed
+through explicit domain tools and does not require arbitrary filesystem writes.
+Set `ELECTRONICS_IGNORE_LIVE=1` only for a deliberate Core-only deployment.
