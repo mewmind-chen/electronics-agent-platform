@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-24T05:29:23.687Z",
+  "at": "2026-08-24T06:00:33.440Z",
   "processReady": true,
   "catalog": [
     {
@@ -91,15 +91,29 @@
         "vision": "n/a"
       },
       "failureReason": "",
-      "notes": "",
-      "ms": 4441
+      "notes": "import",
+      "ms": 4441,
+      "businessQualified": {
+        "import": "pass",
+        "part": "unknown",
+        "company": "unknown"
+      },
+      "skillsRun": [
+        {
+          "skill": "import",
+          "toolsCalled": [
+            "import_"
+          ],
+          "error": ""
+        }
+      ]
     },
     {
       "id": "litellm/free-fast",
       "providerId": "llm",
       "model": "free-fast",
       "verified": true,
-      "pool": "production",
+      "pool": "candidate",
       "availability": "bound",
       "capabilities": {
         "json": "pass",
@@ -108,9 +122,21 @@
         "harness": "pass",
         "vision": "n/a"
       },
-      "failureReason": "",
-      "notes": "",
-      "ms": 15419
+      "failureReason": "import:missing TPS54560DDAR candidate",
+      "notes": "import",
+      "ms": 15419,
+      "businessQualified": {
+        "import": "fail",
+        "part": "unknown",
+        "company": "unknown"
+      },
+      "skillsRun": [
+        {
+          "skill": "import",
+          "toolsCalled": [],
+          "error": "harness timeout"
+        }
+      ]
     },
     {
       "id": "opencode-go/deepseek-v4-pro",
@@ -127,8 +153,29 @@
         "vision": "n/a"
       },
       "failureReason": "",
-      "notes": "",
-      "ms": 5633
+      "notes": "part,company",
+      "ms": 5633,
+      "businessQualified": {
+        "import": "unknown",
+        "part": "pass",
+        "company": "pass"
+      },
+      "skillsRun": [
+        {
+          "skill": "part",
+          "toolsCalled": [
+            "part_research"
+          ],
+          "error": ""
+        },
+        {
+          "skill": "company",
+          "toolsCalled": [
+            "company_research"
+          ],
+          "error": ""
+        }
+      ]
     },
     {
       "id": "opencode-go/qwen3.7-max",
@@ -145,8 +192,29 @@
         "vision": "n/a"
       },
       "failureReason": "",
-      "notes": "",
-      "ms": 8696
+      "notes": "part,company",
+      "ms": 8696,
+      "businessQualified": {
+        "import": "unknown",
+        "part": "pass",
+        "company": "pass"
+      },
+      "skillsRun": [
+        {
+          "skill": "part",
+          "toolsCalled": [
+            "part_research"
+          ],
+          "error": ""
+        },
+        {
+          "skill": "company",
+          "toolsCalled": [
+            "company_research"
+          ],
+          "error": ""
+        }
+      ]
     },
     {
       "id": "litellm/free-strong",
@@ -163,44 +231,89 @@
         "vision": "n/a"
       },
       "failureReason": "",
-      "notes": "",
-      "ms": 7407
+      "notes": "part,company",
+      "ms": 7407,
+      "businessQualified": {
+        "import": "unknown",
+        "part": "pass",
+        "company": "pass"
+      },
+      "skillsRun": [
+        {
+          "skill": "part",
+          "toolsCalled": [
+            "part_research"
+          ],
+          "error": ""
+        },
+        {
+          "skill": "company",
+          "toolsCalled": [
+            "company_research"
+          ],
+          "error": ""
+        }
+      ]
     },
     {
       "id": "opencode-go/kimi-k3",
       "providerId": "opencode-go",
       "model": "kimi-k3",
       "verified": true,
-      "pool": "production",
+      "pool": "candidate",
       "availability": "bound",
       "capabilities": {
         "json": "pass",
         "toolCalling": "pass",
-        "structuredLong": "pass",
+        "structuredLong": "fail",
         "harness": "pass",
         "vision": "n/a"
       },
-      "failureReason": "",
-      "notes": "",
-      "ms": 39455
+      "failureReason": "long:only 0 rows",
+      "notes": "long",
+      "ms": 39455,
+      "businessQualified": {
+        "import": "fail",
+        "part": "unknown",
+        "company": "unknown"
+      },
+      "skillsRun": [
+        {
+          "skill": "long",
+          "toolsCalled": [],
+          "error": "harness timeout"
+        }
+      ]
     },
     {
       "id": "litellm/free-long",
       "providerId": "llm",
       "model": "free-long",
       "verified": true,
-      "pool": "production",
+      "pool": "candidate",
       "availability": "bound",
       "capabilities": {
         "json": "pass",
         "toolCalling": "pass",
-        "structuredLong": "pass",
+        "structuredLong": "fail",
         "harness": "pass",
         "vision": "n/a"
       },
-      "failureReason": "",
-      "notes": "",
-      "ms": 36910
+      "failureReason": "long:only 0 rows",
+      "notes": "long",
+      "ms": 36910,
+      "businessQualified": {
+        "import": "fail",
+        "part": "unknown",
+        "company": "unknown"
+      },
+      "skillsRun": [
+        {
+          "skill": "long",
+          "toolsCalled": [],
+          "error": "harness timeout"
+        }
+      ]
     },
     {
       "id": "subscriptions/grok-4.6",

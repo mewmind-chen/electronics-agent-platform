@@ -2,7 +2,14 @@
  * Deterministic model router. Priority + capability + health + quality.
  * Never random. Never logs or returns API keys.
  */
-import { QUALITY_RANK, applyQualification, inProductionPool, meetsCapabilities, MODEL_CANDIDATES } from "./registry.js";
+import {
+  QUALITY_RANK,
+  applyQualification,
+  businessQualifiedForRole,
+  inProductionPool,
+  meetsCapabilities,
+  MODEL_CANDIDATES,
+} from "./registry.js";
 import { inferRole } from "./role.js";
 import { classifyProviderError, createHealthBook, isRetryableProviderError } from "./health.js";
 import { providerBindings } from "./binding.js";
@@ -45,6 +52,7 @@ export function createModelRouter({
           isAvailable(entry) &&
           entry.roles.includes(role) &&
           meetsCapabilities(entry, role) &&
+          businessQualifiedForRole(entry, role) &&
           qualityOk(entry, quality, role) &&
           book.isHealthy(entry),
       ),
@@ -61,7 +69,13 @@ export function createModelRouter({
         (e) =>
           (e.provider === task.provider || e.providerId === task.provider) && e.model === task.model,
       );
-      if (!hit || !inProductionPool(hit) || !meetsCapabilities(hit, role) || !book.isHealthy(hit) || !hasCredential(hit, env)) {
+      if (
+        !hit ||
+        !inProductionPool(hit) ||
+        !meetsCapabilities(hit, role) ||
+        !businessQualifiedForRole(hit, role) ||
+        !book.isHealthy(hit)
+      ) {
         return { ok: false, error: "agent_unavailable", reason: "fixed_model_unavailable", role, quality, modelMode };
       }
       return routeFrom(hit, role, quality, 0, false);

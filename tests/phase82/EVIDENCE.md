@@ -31,7 +31,7 @@ Path: Model Router identity → official `DeepSeekHarness.run` → skill hello �
 | grok-4.6 | grok | fail | fail | fail | fail | n/a | candidate |
 | glm-4v-flash | describe-image | fail | fail | fail | fail | unknown | candidate |
 
-\*free-fast Harness+JSON+tool passed; structured-long check is not required for the fast role.
+Phase 8.3 replaced the `finalResponse.length >= 20` structuredLong heuristic. See `tests/phase83/EVIDENCE.md`. Long models must return a complete ImportCandidate table.
 
 ## Failures (not auto-selected)
 

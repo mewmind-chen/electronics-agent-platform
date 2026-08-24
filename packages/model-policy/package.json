@@ -7,5 +7,8 @@
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@electronics/contracts": "file:../contracts"
   }
 }

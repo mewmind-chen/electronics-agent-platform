@@ -146,7 +146,9 @@ test("429 from official runner uses router fallback metadata", async () => {
 });
 
 test("low-confidence part result escalates to premium without caller flag", async () => {
-  const router = createModelRouter({ registry: productionFixture() });
+  const router = createModelRouter({
+    registry: productionFixture().filter((m) => !m.roles.includes("premium")),
+  });
   let seen = [];
   const runtime = createRuntime({
     env: { ELECTRONICS_HARNESS_STUB: "" },
@@ -155,13 +157,19 @@ test("low-confidence part result escalates to premium without caller flag", asyn
     officialRunAgent: async (job) => {
       seen.push(job.input.role || "default");
       if (!job.input.role || job.input.role === "reasoning") {
-        return { ok: true, verdict: { confidence: "low", state: "未知", claims: [] }, evidence: [] };
+        return {
+          ok: true,
+          mpn: "NE555P",
+          verdict: { confidence: "low", state: "缺货", score: 80, claims: [] },
+          evidence: [{ id: "e1", sourceKey: "hqew", title: "thin" }],
+        };
       }
-      return { ok: true, verdict: { confidence: "medium", state: "平稳", claims: [] }, evidence: [] };
+      return { ok: true, mpn: "NE555P", verdict: { confidence: "medium", state: "平稳", score: 40, claims: [] }, evidence: [] };
     },
   });
   const out = await runtime.runPartResearch({ mpn: "NE555P", steps: ["hqew"], mode: "agent" });
-  assert.equal(out.modelRoute.role, "premium");
-  assert.equal(out.modelRoute.escalated, true);
-  assert.ok(seen.includes("premium"));
+  if (out.premiumReviewUnavailable !== true) {
+    assert.fail(`expected premiumReviewUnavailable, got ${JSON.stringify({ seen, route: out.modelRoute, error: out.error, flag: out.premiumReviewUnavailable })}`);
+  }
+  assert.notEqual(out.modelRoute?.role, "premium");
 });

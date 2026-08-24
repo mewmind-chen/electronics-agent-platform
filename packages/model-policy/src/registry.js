@@ -15,12 +15,28 @@ export const REQUIRED_BY_ROLE = Object.freeze({
 
 export const QUALITY_RANK = Object.freeze({ economy: 0, standard: 1, quality: 2 });
 
+export const BUSINESS_SKILLS = Object.freeze(["import", "part", "company"]);
+
+export const BUSINESS_BY_ROLE = Object.freeze({
+  fast: "import",
+  long: "import",
+  reasoning: ["part", "company"],
+  premium: ["part", "company"],
+  vision: "import",
+});
+
 const unknownCaps = Object.freeze({
   json: "unknown",
   toolCalling: "unknown",
   structuredLong: "unknown",
   harness: "unknown",
   vision: "n/a",
+});
+
+export const unknownBusiness = Object.freeze({
+  import: "unknown",
+  part: "unknown",
+  company: "unknown",
 });
 
 function model(spec) {
@@ -32,6 +48,7 @@ function model(spec) {
     notes: "live smoke unverified",
     ...spec,
     capabilities: Object.freeze({ ...unknownCaps, ...(spec.capabilities || {}) }),
+    businessQualified: Object.freeze({ ...unknownBusiness, ...(spec.businessQualified || {}) }),
   });
 }
 
@@ -142,19 +159,24 @@ export function applyQualification(registry, live = [], bindings = []) {
         verified: false,
         pool: "candidate",
         capabilities: entry.capabilities,
+        businessQualified: { ...unknownBusiness },
       };
     }
     const caps = { ...unknownCapabilities(entry.roles.includes("vision")), ...(liveRow.capabilities || {}) };
+    const biz = { ...unknownBusiness, ...(liveRow.businessQualified || {}) };
     const required = REQUIRED_BY_ROLE[entry.roles[0]] || REQUIRED_BY_ROLE.fast;
-    const passed = required.every((cap) => caps[cap] === "pass");
+    const harnessOk = required.every((cap) => caps[cap] === "pass");
+    const bizOk = businessQualifiedForRole({ ...entry, businessQualified: biz }, entry.roles[0]);
+    const production = Boolean(liveRow.verified && harnessOk && bizOk);
     return {
       ...entry,
       providerId: liveRow.providerId || bind?.providerId || entry.provider,
       availability: liveRow.availability || bind?.availability || "unknown",
-      verified: Boolean(liveRow.verified && passed),
-      pool: liveRow.verified && passed ? "production" : "candidate",
+      verified: Boolean(liveRow.verified && harnessOk),
+      pool: production ? "production" : "candidate",
       health: liveRow.health || "unknown",
       capabilities: caps,
+      businessQualified: biz,
       failureReason: liveRow.failureReason || "",
       notes: liveRow.notes || entry.notes,
     };
@@ -180,6 +202,13 @@ export function capabilityMatrix(registry = MODEL_CANDIDATES) {
 export function meetsCapabilities(entry, role) {
   const required = REQUIRED_BY_ROLE[role] || REQUIRED_BY_ROLE.fast;
   return required.every((cap) => entry.capabilities?.[cap] === "pass");
+}
+
+export function businessQualifiedForRole(entry, role) {
+  const need = BUSINESS_BY_ROLE[role];
+  if (!need) return false;
+  const skills = Array.isArray(need) ? need : [need];
+  return skills.every((skill) => entry.businessQualified?.[skill] === "pass");
 }
 
 export function inProductionPool(entry) {

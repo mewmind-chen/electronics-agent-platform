@@ -25,13 +25,39 @@ const req = createRequire(import.meta.url);
 
 test("package is Harness-independent and stores no API keys", () => {
   const pkg = req("../package.json");
-  assert.equal(pkg.dependencies, undefined);
+  assert.deepEqual(Object.keys(pkg.dependencies || {}), ["@electronics/contracts"]);
   const src = ["registry.js", "router.js", "role.js", "health.js", "binding.js", "escalate.js", "index.js"]
     .map((f) => readFileSync(join(root, f), "utf8"))
     .join("\n");
   assert.doesNotMatch(src, /from ["']@deepseek-ai/);
   assert.doesNotMatch(src, /sk-[a-zA-Z0-9]{8,}|apiKey\s*[:=]\s*["']/);
   assert.doesNotMatch(src, /XAI_API_KEY|ECONOMY_FAST_KEY|ZAI_API_KEY/);
+});
+
+test("import acceptor enforces TPS54560DDAR regression", async () => {
+  const { acceptImportRegression, acceptLongImport, acceptResearch, LONG_BOM_TEXT } = await import("./accept.js");
+  const good = acceptImportRegression({
+    candidates: [{ kind: "offer", mpn: "TPS54560DDAR", qty: 10000, dateCode: "2418", priceAmount: 1.15, priceCurrency: "USD" }],
+  });
+  assert.equal(good.ok, true);
+  const swapped = acceptImportRegression({
+    candidates: [{ kind: "offer", mpn: "TPS54560DDAR", qty: 2418, dateCode: "10K", priceAmount: 10000 }],
+  });
+  assert.equal(swapped.ok, false);
+  const longOk = acceptLongImport({
+    candidates: LONG_BOM_TEXT.split("\n")
+      .slice(1)
+      .map((line) => {
+        const [mpn, qty] = line.split(" ");
+        return { kind: "offer", mpn, qty: qty === "10K" ? 10000 : 1, dateCode: "2418", priceAmount: 1.15, priceCurrency: "USD" };
+      }),
+  });
+  assert.equal(longOk.ok, true);
+  const badClaim = acceptResearch(
+    { mpn: "TPS54560DDAR", evidence: [], verdict: { state: "热门", score: 80, confidence: "high", claims: [{ text: "x", evidenceId: "missing" }] }, recommendation: { action: "x", reasoning: "y" } },
+    { kind: "part", expectedKey: "TPS54560DDAR" },
+  );
+  assert.equal(badClaim.ok, false);
 });
 
 test("unverified candidates are not production and have unknown capabilities", () => {

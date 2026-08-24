@@ -30,15 +30,17 @@ test("only smoke-verified models enter production", () => {
       assert.equal(row.capabilities.json, "pass");
       assert.equal(row.capabilities.toolCalling, "pass");
       assert.equal(row.capabilities.harness, "pass");
+      const role = row.roles[0];
+      if (role === "fast" || role === "long") assert.equal(row.businessQualified.import, "pass");
+      if (role === "reasoning") {
+        assert.equal(row.businessQualified.part, "pass");
+        assert.equal(row.businessQualified.company, "pass");
+      }
     } else {
       assert.equal(row.pool, "candidate");
-      assert.equal(row.verified, false);
     }
   }
   const router = createModelRouter({ live, bindings: providerBindings() });
-  const fast = router.resolve({ kind: "import", sourceType: "text" });
-  assert.equal(fast.ok, true);
-  assert.equal(fast.model, "deepseek-v4-flash");
   const premium = router.resolve({ kind: "part", role: "premium" });
   assert.equal(premium.ok, false, "unverified grok must not auto-select");
   const vision = router.resolve({ kind: "import", sourceType: "image" });

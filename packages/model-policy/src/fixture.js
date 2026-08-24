@@ -18,6 +18,7 @@ export function productionFixture(ids) {
     availability: "bound",
     health: "up",
     capabilities: m.roles.includes("vision") ? { ...PASS, vision: "pass" } : PASS,
+    businessQualified: { import: "pass", part: "pass", company: "pass" },
   }));
   return applyQualification(MODEL_CANDIDATES, live, providerBindings());
 }

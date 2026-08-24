@@ -202,12 +202,13 @@ export function createRuntime(overrides = {}) {
     if (mode === "core") return unavailable(mode, "core_does_not_start_harness");
     const resolved = routeFor(job.kind, job.input || {});
     const modelRoute = resolved.modelRoute;
-    if (mode === "agent" && !resolved.available) return unavailable(mode, resolved.reason, modelRoute);
+    const canRun = Boolean(resolved.available && (resolved.policy?.provider || resolved.modelRoute?.model));
+    if (mode === "agent" && !canRun) return unavailable(mode, resolved.reason || "no_capable_model", modelRoute);
     if (allowStub && mode !== "agent") {
       const stub = await stubOfficialAgent(job, overrides.tools);
       return { ...stub, viaHarness: false, usedAi: false, route: "stub", mode, modelRoute };
     }
-    if (!resolved.available) return unavailable(mode, resolved.reason, modelRoute);
+    if (!canRun) return unavailable(mode, resolved.reason || "no_capable_model", modelRoute);
     try {
       const out = await runOfficial(job, resolved);
       return { ...out, mode, viaHarness: true, usedAi: true, route: "harness", modelRoute: out.modelRoute || modelRoute };
@@ -285,6 +286,21 @@ export function createRuntime(overrides = {}) {
         return withCoreMeta(core, mode);
       }
 
+      if (core.reason === "vision_required" || input.sourceType === "image" || String(input.mime || "").startsWith("image/")) {
+        const vision = await tryAgent({ kind: "import", input: { ...input, role: "vision" } }, mode);
+        if (vision.error === AGENT_UNAVAILABLE) {
+          return {
+            ok: false,
+            error: "vision_unavailable",
+            reason: "no business-qualified vision model",
+            mode,
+            viaHarness: false,
+            usedAi: false,
+            candidates: [],
+            modelRoute: null,
+          };
+        }
+      }
       const agent = await tryAgent({ kind: "import", input }, mode);
       if (agent.error === AGENT_UNAVAILABLE) {
         if (mode === "agent") return agent;
@@ -337,9 +353,10 @@ export function createRuntime(overrides = {}) {
       const escalate = nextEscalationRole("part", agent, agent.modelRoute?.role || "reasoning");
       if (escalate && mode !== "core") {
         const again = await tryAgent({ kind: "part", input: { ...input, role: escalate }, ctx }, mode);
-        if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
+        if (again && again.ok !== false && !again.error) {
           return { ...again, modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : again.modelRoute };
         }
+        return { ...agent, premiumReviewUnavailable: true };
       }
       return agent;
     },
@@ -355,9 +372,10 @@ export function createRuntime(overrides = {}) {
       const escalate = nextEscalationRole("company", agent, agent.modelRoute?.role || "reasoning");
       if (escalate && mode !== "core") {
         const again = await tryAgent({ kind: "company", input: { ...input, role: escalate }, ctx }, mode);
-        if (again.ok !== false && again.error !== AGENT_UNAVAILABLE) {
+        if (again && again.ok !== false && !again.error) {
           return { ...again, modelRoute: again.modelRoute ? { ...again.modelRoute, escalated: true } : again.modelRoute };
         }
+        return { ...agent, premiumReviewUnavailable: true };
       }
       return agent;
     },
