@@ -128,6 +128,25 @@ test("import request and result", () => {
   assert.equal(result.value.candidates[0].mpn, "TPS54560DDAR");
 });
 
+test("import request treats prose and opaque image bytes as data, not SQL instructions", () => {
+  const text = parseImportRequest({
+    kind: "offer",
+    sourceType: "text",
+    text: "supplier note contains sql as ordinary text",
+    mode: "agent",
+  });
+  assert.equal(text.ok, true);
+
+  const image = parseImportRequest({
+    kind: "offer",
+    sourceType: "image",
+    mime: "image/png",
+    fileBase64: "AAEsqlrandomopaquebytes==",
+    mode: "agent",
+  });
+  assert.equal(image.ok, true);
+});
+
 test("part research result requires claim evidence to exist", () => {
   const req = parsePartResearchRequest({ mpn: "TPS54560DDAR" });
   assert.equal(req.ok, true);
