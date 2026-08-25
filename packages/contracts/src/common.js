@@ -141,14 +141,35 @@ export function expectNullOrNumber(errors, path, value, opts) {
 }
 
 export function rejectWriteSemantics(errors, path, value) {
-  if (!isPlainObject(value) && typeof value !== "string") return;
-  const blob = typeof value === "string" ? value : JSON.stringify(value);
-  for (const key of WRITE_KEYS) {
-    if (blob.includes(key)) {
-      fail(errors, path, `write/SQL semantics are forbidden on Agent contracts (${key})`);
-      return;
+  const opaque = new Set(["fileBase64", "text", "sourceText", "filename", "mime"]);
+  const seen = new WeakSet();
+  const find = (current, key = "") => {
+    if (key && WRITE_KEYS.includes(key)) return key;
+    // User-provided text and encoded files are data, not Agent write
+    // instructions. Scanning them as JSON text makes arbitrary prose or a
+    // random base64 substring such as "sql" fail contract validation.
+    if (opaque.has(key)) return null;
+    if (typeof current === "string") {
+      return WRITE_KEYS.find((forbidden) => current.includes(forbidden)) || null;
     }
-  }
+    if (!current || typeof current !== "object") return null;
+    if (seen.has(current)) return null;
+    seen.add(current);
+    if (Array.isArray(current)) {
+      for (const item of current) {
+        const hit = find(item, "");
+        if (hit) return hit;
+      }
+      return null;
+    }
+    for (const [childKey, child] of Object.entries(current)) {
+      const hit = find(child, childKey);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  const hit = find(value);
+  if (hit) fail(errors, path, `write/SQL semantics are forbidden on Agent contracts (${hit})`);
 }
 
 /** Display MPN: NFKC + trim only. Never rewrite characters. */
