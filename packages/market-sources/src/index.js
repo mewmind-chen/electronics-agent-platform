@@ -17,4 +17,5 @@ export { parseIcnetHtml, icnetAuthOrParse, resolveIcnetCookie } from "./icnet.js
 export { fetchIntelBrief, resolveAnysearchKey } from "./anysearch.js";
 export { fetchMouserOffers, fetchDigikeyOffers } from "./authorized.js";
 export { assessParseHealth } from "./health.js";
+export { sourceReadiness, sourceConfigured } from "./readiness.js";
 export { runLookupStep, healthForStep, MARKET_STEPS } from "./lookup.js";

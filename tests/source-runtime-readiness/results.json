@@ -1,0 +1,51 @@
+{
+  "baseline": "01bd169",
+  "branch": "fix/source-runtime-readiness",
+  "live": true,
+  "secretsRecorded": false,
+  "authenticatedSources": false,
+  "platformHealth": {
+    "ok": true,
+    "platform": "ready",
+    "agentReady": true,
+    "agentAvailable": true,
+    "sourceReadiness": {
+      "firecrawl": "AUTH_REQUIRED",
+      "anysearch": "AUTH_REQUIRED",
+      "icnet": "AUTH_REQUIRED",
+      "mouser": "AUTH_REQUIRED",
+      "findchips": "AUTH_REQUIRED"
+    }
+  },
+  "part": {
+    "mpn": "TPS54560DDAR",
+    "sources": [
+      {"source": "lcsc", "status": "AUTH_REQUIRED", "called": false},
+      {"source": "hqew", "status": "AUTH_REQUIRED", "called": false},
+      {"source": "intel", "status": "AUTH_REQUIRED", "called": false},
+      {"source": "findchips", "status": "AUTH_REQUIRED", "called": false},
+      {"source": "icnet", "status": "AUTH_REQUIRED", "called": false}
+    ],
+    "internalQuoteCount": 0,
+    "internalQuoteCountMeaning": "no Radar/Workbench quotation context; not public market zero"
+  },
+  "company": {
+    "cases": ["Texas Instruments", "redacted HQEW supplier"],
+    "sources": [
+      {"source": "gys", "status": "AUTH_REQUIRED", "called": false},
+      {"source": "shop", "status": "EMPTY", "called": false},
+      {"source": "intel", "status": "AUTH_REQUIRED", "called": false}
+    ]
+  },
+  "desktopAcceptance": {
+    "app": "DSH Desktop",
+    "webServerUsed": false,
+    "partResearchToolCallObserved": true,
+    "genericSearchToolCallObserved": false,
+    "result": "tool call observed; generation stopped after verifier retry loop"
+  },
+  "notes": [
+    "Live Docker API smoke tests ran with no market credentials configured; statuses are redacted and contain no credential metadata.",
+    "Desktop acceptance used the installed DSH Desktop app, not the temporary Web Harness URL."
+  ]
+}

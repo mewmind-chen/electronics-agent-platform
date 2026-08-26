@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createRuntime, createSessionId } from "../../apps/agent-api/src/runtime.js";
+import { buildHarnessEnv, createRuntime, createSessionId } from "../../apps/agent-api/src/runtime.js";
 import { extractNamedTool, loadOfficialTools } from "../../apps/agent-api/src/harness-dispatch.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -33,6 +33,23 @@ test("official Harness session ids cannot collide within the same millisecond", 
   const ids = new Set(Array.from({ length: 100 }, () => createSessionId("company")));
   assert.equal(ids.size, 100);
   assert.ok([...ids].every((id) => id.startsWith("company-")));
+});
+
+test("official Harness child inherits source credentials through its private environment", () => {
+  const env = buildHarnessEnv(
+    { EXISTING: "keep", ANYSEARCH_API_KEY: "platform-key" },
+    {
+      firecrawlKey: "request-firecrawl",
+      anysearchKey: "request-anysearch",
+      icnetCookie: "request-cookie",
+      mouserKey: "request-mouser",
+    },
+  );
+  assert.equal(env.EXISTING, "keep");
+  assert.equal(env.FIRECRAWL_API_KEY, "request-firecrawl");
+  assert.equal(env.ANYSEARCH_API_KEY, "request-anysearch");
+  assert.equal(env.ICNET_COOKIE, "request-cookie");
+  assert.equal(env.MOUSER_API_KEY, "request-mouser");
 });
 
 test("test stub may execute official tools but must not claim viaHarness/usedAi", async () => {

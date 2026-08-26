@@ -9,6 +9,11 @@ services:
       AGENT_API_TOKEN: ${AGENT_API_TOKEN:?Set AGENT_API_TOKEN in the deployment environment}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       OPENCODE_GO_API_KEY: ${OPENCODE_GO_API_KEY:-}
+      # Public market credentials belong to Platform, never the Harness plugin.
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+      ANYSEARCH_API_KEY: ${ANYSEARCH_API_KEY:-}
+      ICNET_COOKIE: ${ICNET_COOKIE:-}
+      MOUSER_API_KEY: ${MOUSER_API_KEY:-}
       ELECTRONICS_IGNORE_LIVE: ${ELECTRONICS_IGNORE_LIVE:-0}
       TASK_STORE_PATH: /app/.dsh-platform/tasks.sqlite
       TASK_TTL_MS: ${TASK_TTL_MS:-604800000}

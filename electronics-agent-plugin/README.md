@@ -126,7 +126,10 @@ Skills register from `apply()` via `ctx.skills.register`, reading `skills/*.md` 
 - **Desktop `pnpm` store**: `dsh plugin add` uses whatever `pnpm` is on PATH. If the Desktop profile was installed with pnpm store `v11` and PATH has pnpm 10, add fails with `ERR_PNPM_UNEXPECTED_STORE`. That is a Harness/Desktop environment issue. Workaround: run the same `dsh plugin add` with a pnpm major that matches the profile store. Do not put store paths into this plugin.
 - **Credentials CLI vs GUI**: GUI-managed `~/.dsh/.credentials.yaml` may include `version` / `refs`. Current `dsh-credentials-local` wants a flat `KEY: string` map. A raw `dsh --profile desktop` boot can fail **after** this plugin has already applied. That is Harness CLI compatibility, not a plugin defect. Do not copy credentials into this repo. Optional local `--patch` to a flattened file is an operator workaround only.
 - Desktop default model (for example `grok`) may have no adapter in headless. Select a model the profile actually has (for example `deepseek-official` / `deepseek-v4-flash`).
-- A full Desktop profile may include extra search plugins. Skills tell the model not to invent company facts; operators should still treat web text as non-evidence.
+- A full Desktop profile may include extra search plugins. After a successful
+  Platform research tool call they are not part of the formal intelligence
+  chain; use them only for an explicitly requested, separately labelled
+  `External Supplemental Research` section.
 
 ## 12. Uninstall / reinstall
 

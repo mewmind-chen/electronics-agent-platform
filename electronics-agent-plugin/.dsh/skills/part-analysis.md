@@ -22,6 +22,8 @@ When the user asks to analyze a part such as `分析 TPS54560DDAR`, copy the MPN
 2. Call `part_research` with that MPN.
 3. Keep every non-unknown claim tied to a real `evidenceId`.
 4. Reply with the tool's business report (基础信息 / 公开市场判断 / 供应情况 / 价格趋势 / 内部业务判断 / 综合建议). Do not invent stock, price, or hotness.
+5. Treat the Platform tool result as the complete formal intelligence chain:
+   Platform → Market/Public Sources → Evidence → Intelligence → Presentation.
 
 ## Evidence
 
@@ -36,3 +38,10 @@ Every non-unknown claim must keep a real `evidenceId`. Source failures are not e
 1. Never write a business database. No INSERT, confirmImport, saveReport.
 2. Never rewrite or autocomplete an MPN.
 3. Radar owns inventory writes. Workbench owns official saved reports.
+4. If `part_research` succeeds, do not call generic web search, browse, or a
+   second research stack to fill gaps. Source gaps must remain explicitly
+   `DEGRADED`, `AUTH_REQUIRED`, or unknown in the Platform result.
+5. If the Platform is unavailable, say `Electronics Agent backend unavailable`.
+   Only when the user explicitly asks for supplemental web research may you
+   perform it, and it must be labelled `External Supplemental Research` and
+   never mixed into Platform verdict/evidence.

@@ -18,6 +18,7 @@ const SENSITIVE_KEYS = new Set([
   "firecrawlKey",
   "anysearchKey",
   "icnetCookie",
+  "mouserKey",
   "authorization",
   "token",
   "recommendation",
@@ -26,6 +27,7 @@ const SENSITIVE_KEYS = new Set([
 const PUBLIC_RESULT_KEYS = new Set([
   "ok", "mpn", "company", "identity", "offers", "evidence", "verdict",
   "dossier", "analysis", "supply", "cards", "positioning", "steps",
+  "sourceRuntime",
   "companies", "shopRows", "profile", "mode", "viaHarness", "usedAi",
   "route", "fallbackFrom", "modelRoute", "premiumReviewUnavailable",
   "error", "errors", "reason", "needsAgent", "mapping", "candidates",

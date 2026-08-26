@@ -9,6 +9,7 @@ export function requestCtx(req, extra = {}) {
     firecrawlKey: extra.firecrawlKey || req.headers["x-firecrawl-key"] || process.env.FIRECRAWL_API_KEY || "",
     anysearchKey: extra.anysearchKey || process.env.ANYSEARCH_API_KEY || "",
     icnetCookie: extra.icnetCookie || process.env.ICNET_COOKIE || "",
+    mouserKey: extra.mouserKey || process.env.MOUSER_API_KEY || "",
     inventory: context.inventory || extra.inventory,
     quotation: context.quotation || extra.quotation,
     customer: context.customer || extra.customer,

@@ -19,6 +19,21 @@ function unknownPart(result) {
   return state === "未知" || !cited.length;
 }
 
+function sourceTraceLines(result) {
+  const traces = Array.isArray(result?.sourceRuntime?.traces) ? result.sourceRuntime.traces : [];
+  if (!traces.length) return [];
+  return [
+    "## 公开来源运行状态",
+    "",
+    ...traces.map((trace) => {
+      const count = trace.dataCount == null ? "未知" : trace.dataCount;
+      const reason = trace.degradationReason ? `；说明：${trace.degradationReason}` : "";
+      return `- ${trace.source}：${trace.status}；configured=${Boolean(trace.configured)}；called=${Boolean(trace.called)}；结果 ${count} 条${reason}`;
+    }),
+    "",
+  ];
+}
+
 function presentConfigFailure(raw) {
   const error = raw && typeof raw === "object" ? raw.error : "";
   if (error !== "configuration_error" && error !== "authentication_configuration_error") return "";
@@ -73,6 +88,7 @@ export function presentPartMarkdown(raw = {}) {
     for (const claim of claims) lines.push(`依据：${claim.text}${cite(claim.evidenceId)}`);
     if (cards.hot?.verdict) lines.push(`热度：${cards.hot.verdict}${cite(cited[0])}`);
   }
+  lines.push(...sourceTraceLines(result));
   lines.push("");
   lines.push("## 供应情况");
   lines.push("");
@@ -99,6 +115,9 @@ export function presentPartMarkdown(raw = {}) {
   lines.push("");
   if (!advice.usedInternal) {
     lines.push("内部上下文：未注入。");
+    lines.push(
+      `内部询价上下文：${Number(result.sourceRuntime?.internalQuoteCount || 0)}（仅表示本次没有 Radar/Workbench 询价上下文，不表示公开市场无报价。）`,
+    );
     lines.push("说明：库存/询价须由 Radar 或 Workbench 在请求里传入，Agent 不读业务库。");
   } else {
     if (biz.inventory) {
@@ -241,6 +260,15 @@ export function presentCompanyMarkdown(raw = {}) {
     }
     for (const claim of claims) {
       lines.push(`依据：${claim.text}${cite(claim.evidenceId)}`);
+    }
+  }
+  const traces = Array.isArray(result.sourceRuntime?.traces) ? result.sourceRuntime.traces : [];
+  if (traces.length) {
+    lines.push("");
+    lines.push("## 公开来源运行状态");
+    lines.push("");
+    for (const trace of traces) {
+      lines.push(`- ${trace.source}：${trace.status}；configured=${Boolean(trace.configured)}；called=${Boolean(trace.called)}；结果 ${trace.dataCount ?? "未知"} 条${trace.degradationReason ? `；说明：${trace.degradationReason}` : ""}`);
     }
   }
   lines.push("");

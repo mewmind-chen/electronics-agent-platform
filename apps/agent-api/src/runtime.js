@@ -121,6 +121,29 @@ export function createSessionId(kind) {
   return `${String(kind || "agent")}-${Date.now()}-${randomUUID()}`;
 }
 
+/**
+ * Carry request-scoped source credentials into the official Harness child.
+ *
+ * The model never receives these values in its prompt or tool arguments. The
+ * registered dsh tools resolve them from the child process environment, which
+ * keeps the source boundary inside Platform while still preserving the
+ * request-scoped connector contract used by the deterministic cores.
+ */
+export function buildHarnessEnv(baseEnv = process.env, sourceContext = {}) {
+  const env = { ...baseEnv };
+  const bindings = [
+    ["firecrawlKey", "FIRECRAWL_API_KEY"],
+    ["anysearchKey", "ANYSEARCH_API_KEY"],
+    ["icnetCookie", "ICNET_COOKIE"],
+    ["mouserKey", "MOUSER_API_KEY"],
+  ];
+  for (const [contextName, envName] of bindings) {
+    const value = String(sourceContext?.[contextName] || "").trim();
+    if (value) env[envName] = value;
+  }
+  return env;
+}
+
 /** String prompt, or text+encoded-image blocks for vision import. */
 export function importAgentInput(input) {
   const text = importPrompt(input);
@@ -139,7 +162,7 @@ function partPrompt(input) {
     "Follow Goal, Tools, Steps, Evidence, Answer, Hard rules.",
     `The user said: ${JSON.stringify(input.message || `分析 ${input.mpn}`)}.`,
     `Call part_research with the exact MPN ${JSON.stringify(input.mpn)}.`,
-    "Do not truncate suffixes. Return the tool JSON unchanged. Never write a business database.",
+    "Do not truncate suffixes. Return the tool JSON unchanged. Never write a business database. Do not use generic web search or another intelligence stack after the tool; source gaps stay explicit. Only do separately labelled External Supplemental Research if the user explicitly asks.",
     `Request: ${JSON.stringify({ mpn: input.mpn, goal: input.goal, steps: input.steps })}`,
   ].join(" ");
 }
@@ -148,7 +171,7 @@ function companyPrompt(input) {
   return [
     "Load skill company.",
     `Call company_research with company ${JSON.stringify(input.company)}.`,
-    "Return the tool JSON unchanged. Never write a business database.",
+    "Return the tool JSON unchanged. Never write a business database. Do not use generic web search or another intelligence stack after the tool; source gaps stay explicit. Only do separately labelled External Supplemental Research if the user explicitly asks.",
     `Request: ${JSON.stringify({ company: input.company, goal: input.goal, steps: input.steps })}`,
   ].join(" ");
 }
@@ -203,7 +226,7 @@ async function officialRunAgent(job, agentRuntime) {
       args: [resolved.bin, resolved.cordis],
       cwd: runtimeDir,
       env: {
-        ...process.env,
+        ...buildHarnessEnv(process.env, job.ctx),
         DSH_CORDIS_CONFIG: resolved.cordis,
         DSH_CWD: root,
         DSH_SESSION_ROOT: sessionRoot,
